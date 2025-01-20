@@ -53,7 +53,7 @@ Note that if you do `(manneback cluster) $ bash notebook.sh` directly without us
 **Do not** use `module load CUDA`. This command uses [Lmod](https://github.com/TACC/Lmod) to set `LD_LIBRARY_PATH` (as detailed in the output of `module show CUDA`) [which is discouraged](https://github.com/JuliaGPU/CUDA.jl/issues/1755).
 
 Running Julia interactively on a compute node is as simple as running `$ srun --pty julia`.
-If `CUDA` was precompiles on a login node, you will see the error
+If `CUDA` was precompiled on a node with no GPU (such as the login node), you will see the error
 ```julia
 julia> using CUDA
 ┌ Error: CUDA.jl could not find an appropriate CUDA runtime to use.
