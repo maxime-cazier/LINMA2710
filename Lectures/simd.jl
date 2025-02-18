@@ -61,9 +61,6 @@ section("Motivational example")
 # ╔═╡ f6674345-4b71-40f3-8d42-82697990d534
 frametitle("A sum function in C and Julia")
 
-# ╔═╡ a38807e2-d901-4467-b35e-248da491abff
-sum_int_code
-
 # ╔═╡ baf29a4d-337c-430c-b382-9b2dab7ce69a
 function julia_sum(v::Vector{T}) where {T}
 	total = zero(T)
@@ -173,14 +170,7 @@ vec_int = rand(Int64, 10^3);
 vec_floats = rand(Float16, 10^3);
 
 # ╔═╡ a71f00ab-b5ac-47e2-8745-17f837064d8d
-#=╠═╡
 @btime sum(vec_int)
-  ╠═╡ =#
-
-# ╔═╡ 8302c524-1f1c-401f-a39c-59b5e4869870
-#=╠═╡
-@btime mysum(vec_int)
-  ╠═╡ =#
 
 # ╔═╡ 3105d963-0e89-43ca-b6f9-daaf8aec70b2
 @btime sum(vec_floats)
@@ -210,6 +200,9 @@ function mysum(x::Vector{T}) where {T}
 	end
 	return s
 end;
+
+# ╔═╡ 8302c524-1f1c-401f-a39c-59b5e4869870
+@btime mysum(vec_int)
 
 # ╔═╡ e9cb0525-fb17-4429-844b-797b3c0aaae4
 @btime mysum(vec_floats)
@@ -282,6 +275,9 @@ end
 
 # ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
 sum_float_code, sum_float_lib = compile_lib(c_sum_code("float"), lib = true, cflags = String[]);
+
+# ╔═╡ a38807e2-d901-4467-b35e-248da491abff
+sum_float_code
 
 # ╔═╡ a841d535-c32b-4bb6-8132-600253038508
 c_sum(x::Vector{Cfloat}) = ccall(("sum", sum_float_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
