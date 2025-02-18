@@ -4,6 +4,18 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    #! format: off
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+    #! format: on
+end
+
 # ╔═╡ 406dcb0d-b68d-40ec-8844-c5445cff88f6
 import Pkg
 
@@ -42,6 +54,36 @@ HAlign(md"""
 		boxed("Assembly", Point(0, 100))
 	end 300 300)"""
 )
+
+# ╔═╡ d92d69c4-f6b8-4f53-89bc-bf183b7e603d
+section("Motivational example")
+
+# ╔═╡ f6674345-4b71-40f3-8d42-82697990d534
+frametitle("A sum function in C and Julia")
+
+# ╔═╡ a38807e2-d901-4467-b35e-248da491abff
+sum_int_code
+
+# ╔═╡ baf29a4d-337c-430c-b382-9b2dab7ce69a
+function julia_sum(v::Vector{T}) where {T}
+	total = zero(T)
+	for i in eachindex(v)
+		total += v[i]
+	end
+	return total
+end
+
+# ╔═╡ ec98ab34-cb2b-48c1-a9d2-3fa9c7821d11
+frametitle("Let's make a small benchmark")
+
+# ╔═╡ 8b7c3a6e-bd6a-425e-8040-340fdb6b0dd0
+vec_float = rand(Float32, 2^16)
+
+# ╔═╡ 0b4c686c-912b-42ff-a7ef-970030808a74
+@btime julia_sum($vec_float)
+
+# ╔═╡ 0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
+@bind sum_float_flags MultiCheckBox(["-O3", "-msse3", "-mavx2", "-mavx512f", "-ffast-math"])
 
 # ╔═╡ 8a552e21-e51b-457d-b974-148537db6cae
 section("Single Instruction Multiple Data (SIMD)")
@@ -131,7 +173,14 @@ vec_int = rand(Int64, 10^3);
 vec_floats = rand(Float16, 10^3);
 
 # ╔═╡ a71f00ab-b5ac-47e2-8745-17f837064d8d
+#=╠═╡
 @btime sum(vec_int)
+  ╠═╡ =#
+
+# ╔═╡ 8302c524-1f1c-401f-a39c-59b5e4869870
+#=╠═╡
+@btime mysum(vec_int)
+  ╠═╡ =#
 
 # ╔═╡ 3105d963-0e89-43ca-b6f9-daaf8aec70b2
 @btime sum(vec_floats)
@@ -162,9 +211,6 @@ function mysum(x::Vector{T}) where {T}
 	return s
 end;
 
-# ╔═╡ 8302c524-1f1c-401f-a39c-59b5e4869870
-@btime mysum(vec_int)
-
 # ╔═╡ e9cb0525-fb17-4429-844b-797b3c0aaae4
 @btime mysum(vec_floats)
 
@@ -183,6 +229,13 @@ frametitle("LLVM Superword-Level Parallelism (SLP) Vectorizer")
 # ╔═╡ e699def3-f554-4a82-b3f2-52963f82bec4
 a = rand(10^7)
 
+# ╔═╡ a7c282ff-a167-4b0d-8bbf-831335bbca7e
+HAlign((
+	md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))""",
+	md"""$(@bind sum_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"]))"""),
+	[30, 60]
+)
+
 # ╔═╡ 3a530df7-8e1b-444c-9164-d9a3e315afe5
 sum_code, sum_lib = compile_lib("""
 double sum(double *vec, int length) {
@@ -198,9 +251,6 @@ sum_code
 
 # ╔═╡ 9268e690-6ade-433f-a3fd-a7f2d7992c64
 c_sum(X::Vector{Float64}) = ccall(("sum", sum_lib), Float64, (Ptr{Float64}, Cint), X, length(X))
-
-# ╔═╡ 2d67e6ba-fa28-4d83-9e17-4b70e473b0b3
-@benchmark c_sum(a)
 
 # ╔═╡ 69c872e1-966a-4a7a-a90f-d13bc108b801
 f(a, b) = (a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4])
@@ -218,13 +268,48 @@ Sources:
 * [Demystifying Auto-vectorization in Julia](https://www.juliabloggers.com/demystifying-auto-vectorization-in-julia/)
 """
 
-# ╔═╡ ba942e73-ab7c-4635-ae10-88fa4e717368
-SVector{2,Float32}
+# ╔═╡ 174407b5-75be-4930-a476-7f2bfa35cdf0
+function c_sum_code(T)
+	return """
+$T sum($T *vec, int length) {
+    $T total = 0;
+    for (int i = 0; i < length; i++) {
+        total += vec[i];
+    }
+    return total;
+}"""
+end
+
+# ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
+sum_float_code, sum_float_lib = compile_lib(c_sum_code("float"), lib = true, cflags = String[]);
+
+# ╔═╡ a841d535-c32b-4bb6-8132-600253038508
+c_sum(x::Vector{Cfloat}) = ccall(("sum", sum_float_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
+
+# ╔═╡ 691d01a2-12fc-4782-a9f9-a732746285c6
+@btime c_sum($vec_float)
+
+# ╔═╡ 2d67e6ba-fa28-4d83-9e17-4b70e473b0b3
+@time c_sum(a)
+
+# ╔═╡ e6fac999-9f54-42f9-a1b7-3fd883b891ab
+emit_llvm(c_sum_code(sum_type), cflags = ["-O3"; sum_flags])
 
 # ╔═╡ Cell order:
 # ╟─49aca9a0-ed40-11ef-1cf9-635242dfa821
 # ╟─74ae5855-85e8-4615-bf98-e7819bc053d2
 # ╟─0d17955c-6ddc-4d57-8600-8ad3229d4631
+# ╟─d92d69c4-f6b8-4f53-89bc-bf183b7e603d
+# ╟─f6674345-4b71-40f3-8d42-82697990d534
+# ╟─a38807e2-d901-4467-b35e-248da491abff
+# ╠═a841d535-c32b-4bb6-8132-600253038508
+# ╠═baf29a4d-337c-430c-b382-9b2dab7ce69a
+# ╟─1548a494-80a9-4295-a012-88be6de7fcfa
+# ╟─ec98ab34-cb2b-48c1-a9d2-3fa9c7821d11
+# ╠═8b7c3a6e-bd6a-425e-8040-340fdb6b0dd0
+# ╠═691d01a2-12fc-4782-a9f9-a732746285c6
+# ╠═0b4c686c-912b-42ff-a7ef-970030808a74
+# ╟─0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
 # ╟─8a552e21-e51b-457d-b974-148537db6cae
 # ╟─639e0ece-502b-4379-a932-32c0d119cc2f
 # ╟─1ddcda8b-fa23-4802-852c-e70b1777c2e4
@@ -256,14 +341,16 @@ SVector{2,Float32}
 # ╠═0bfeb5db-a332-4f95-b8c8-39b53c4d5822
 # ╟─529ba439-40fe-4d93-88c5-797c0a9fc6ee
 # ╠═e699def3-f554-4a82-b3f2-52963f82bec4
-# ╟─1c8fc81d-c1a8-40ac-b51c-bcdf5df41ae8
-# ╟─9268e690-6ade-433f-a3fd-a7f2d7992c64
+# ╠═1c8fc81d-c1a8-40ac-b51c-bcdf5df41ae8
+# ╠═9268e690-6ade-433f-a3fd-a7f2d7992c64
 # ╠═2d67e6ba-fa28-4d83-9e17-4b70e473b0b3
-# ╟─3a530df7-8e1b-444c-9164-d9a3e315afe5
+# ╟─a7c282ff-a167-4b0d-8bbf-831335bbca7e
+# ╟─e6fac999-9f54-42f9-a1b7-3fd883b891ab
+# ╠═3a530df7-8e1b-444c-9164-d9a3e315afe5
 # ╠═69c872e1-966a-4a7a-a90f-d13bc108b801
 # ╠═bfb3b635-85b2-4a1e-a16c-5106b6495d09
 # ╟─fcf5c210-c100-4534-a65b-9bee23c518da
-# ╠═ba942e73-ab7c-4635-ae10-88fa4e717368
+# ╟─174407b5-75be-4930-a476-7f2bfa35cdf0
 # ╠═406dcb0d-b68d-40ec-8844-c5445cff88f6
 # ╠═dfc87f8b-1b29-4f3a-b674-6ddf16b9d1ce
 # ╠═d3c2d2b7-8f23-478b-b36b-c92552a6cf01
