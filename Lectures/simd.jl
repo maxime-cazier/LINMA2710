@@ -23,7 +23,7 @@ import Pkg
 Pkg.activate(".")
 
 # ╔═╡ d3c2d2b7-8f23-478b-b36b-c92552a6cf01
-using MyUtils, PlutoUI, Luxor, StaticArrays, BenchmarkTools
+using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, BenchmarkTools, PlutoTeachingTools
 
 # ╔═╡ 49aca9a0-ed40-11ef-1cf9-635242dfa821
 header("LINMA2710 - Scientific Computing", "P.-A. Absil and B. Legat")
@@ -32,7 +32,7 @@ header("LINMA2710 - Scientific Computing", "P.-A. Absil and B. Legat")
 section("History")
 
 # ╔═╡ 0d17955c-6ddc-4d57-8600-8ad3229d4631
-HAlign(md"""
+hbox([md"""
 * **1972** : C language created by Dennis Ritchie and Ken Thompson to ease development of Unix (previously developed in **assembly**)
 * **1985** : C++ created by Bjarne Stroustrup
 * **2003** : Vikram Adve and Chris Lattner create LLVM
@@ -41,7 +41,7 @@ HAlign(md"""
 * **2009** : Mozilla start developing an LLVM-based compiler for Rust
 * **2009** : Develpment starts on Julia, with LLVM-based compiler
 """,
-	md"""$(@draw begin
+	Div(md"""$(@draw begin
 	    placeimage_from_url("https://upload.wikimedia.org/wikipedia/commons/1/18/ISO_C%2B%2B_Logo.svg", Point(-100, -100), scale = 0.1)
 	    arrow(Point(-85, -85), Point(-20, -15))
 	    placeimage_from_url("https://raw.githubusercontent.com/rust-lang/www.rust-lang.org/master/static/images/rust-social-wide-light.svg", Point(0, -100), scale = 0.15)
@@ -52,8 +52,8 @@ HAlign(md"""
 		boxed("LLVM Intermediate Representation", Point(0, 0))
 		arrow(Point(0, 10), Point(0, 85))
 		boxed("Assembly", Point(0, 100))
-	end 300 300)"""
-)
+	end 300 300)"""; style = Dict("width" => "100%")),
+])
 
 # ╔═╡ d92d69c4-f6b8-4f53-89bc-bf183b7e603d
 section("Motivational example")
@@ -79,8 +79,42 @@ vec_float = rand(Float32, 2^16)
 # ╔═╡ 0b4c686c-912b-42ff-a7ef-970030808a74
 @btime julia_sum($vec_float)
 
+# ╔═╡ 9956af59-12e9-4eb6-bf63-03e2936a5912
+sum_float_options = hbox([Div(
+		md"""Element type : $(@bind sum_float_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))"""; style = Dict("flex-grow" => "1")),
+		md"""$(@bind sum_float_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"]))"""
+],
+);
+
 # ╔═╡ 0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
-@bind sum_float_flags MultiCheckBox(["-O3", "-msse3", "-mavx2", "-mavx512f", "-ffast-math"])
+qa(md"How to speed up the C code ?",
+md"""
+Try passing the following flags to Clang by selecting them and waiting for the benchmark timing to refresh: $(sum_float_options)
+
+What are they doing ? We'll see in the lecture...
+"""
+)
+
+# ╔═╡ 66a18765-b8a4-41af-8711-80d08b0ef4c4
+frametitle("Faster Julia code")
+
+# ╔═╡ f853de2d-ca27-42d6-af9a-194ee6bb7d89
+qa(md"How to get the same speed up from the Julia code ?", md"The `-O3` option need to be passed to the `julia` session that started Pluto. For `-m...`, it's done automatically when Julia detects the possibility (using `@fastmath` and `@inbounds` are usually required for this) or when forced with `@simd`. This allows enabling these to only part of the code and not a whole library")
+
+# ╔═╡ e437157d-e30a-498f-a031-a603048caed0
+function julia_sum_fast(v::Vector{T}) where {T}
+	total = zero(T)
+	for i in eachindex(v)
+		@fastmath total += @inbounds v[i]
+	end
+	return total
+end
+
+# ╔═╡ cce70070-5938-4f44-8181-2fb6158c419b
+@btime julia_sum_fast($vec_float)
+
+# ╔═╡ e432159e-f3f2-412d-b559-155674f732f6
+frametitle("Careful with fast math")
 
 # ╔═╡ 8a552e21-e51b-457d-b974-148537db6cae
 section("Single Instruction Multiple Data (SIMD)")
@@ -223,11 +257,10 @@ frametitle("LLVM Superword-Level Parallelism (SLP) Vectorizer")
 a = rand(10^7)
 
 # ╔═╡ a7c282ff-a167-4b0d-8bbf-831335bbca7e
-HAlign((
-	md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))""",
-	md"""$(@bind sum_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"]))"""),
-	[30, 60]
-)
+hbox([
+	Div(md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))"""; style="flex-grow: 1"),
+	md"""$(@bind sum_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"]))""",
+])
 
 # ╔═╡ 3a530df7-8e1b-444c-9164-d9a3e315afe5
 sum_code, sum_lib = compile_lib("""
@@ -274,7 +307,7 @@ $T sum($T *vec, int length) {
 end
 
 # ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
-sum_float_code, sum_float_lib = compile_lib(c_sum_code("float"), lib = true, cflags = String[]);
+sum_float_code, sum_float_lib = compile_lib(c_sum_code("float"), lib = true, cflags = [sum_float_opt; sum_float_flags]);
 
 # ╔═╡ a38807e2-d901-4467-b35e-248da491abff
 sum_float_code
@@ -306,6 +339,12 @@ emit_llvm(c_sum_code(sum_type), cflags = ["-O3"; sum_flags])
 # ╠═691d01a2-12fc-4782-a9f9-a732746285c6
 # ╠═0b4c686c-912b-42ff-a7ef-970030808a74
 # ╟─0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
+# ╟─9956af59-12e9-4eb6-bf63-03e2936a5912
+# ╟─66a18765-b8a4-41af-8711-80d08b0ef4c4
+# ╟─f853de2d-ca27-42d6-af9a-194ee6bb7d89
+# ╠═e437157d-e30a-498f-a031-a603048caed0
+# ╠═cce70070-5938-4f44-8181-2fb6158c419b
+# ╟─e432159e-f3f2-412d-b559-155674f732f6
 # ╟─8a552e21-e51b-457d-b974-148537db6cae
 # ╟─639e0ece-502b-4379-a932-32c0d119cc2f
 # ╟─1ddcda8b-fa23-4802-852c-e70b1777c2e4

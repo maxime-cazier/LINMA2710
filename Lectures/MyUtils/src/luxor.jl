@@ -1,4 +1,4 @@
-import Luxor, Images
+import Luxor, PlutoTeachingTools
 
 function CenteredBoundedBox(str)
     xbearing, ybearing, width, height, xadvance, yadvance =
@@ -18,9 +18,10 @@ function boxed(str::AbstractString, p)
     Luxor.origin()
 end
 
-function placeimage_from_url(url, pos; scale = 1.0, centered = true)
-    path = Images.download(url)
-    if endswith(url, ".svg")
+function placeimage_from_url(url, pos; scale = 1.0, centered = true, name = split(url, '/')[end])
+    path = joinpath("cache", name)
+    r = PlutoTeachingTools.RobustLocalResource(url, path)
+    if r.mime isa MIME"image/svg+xml"
         img = Luxor.readsvg(path)
     else
         img = Luxor.readpng(path)

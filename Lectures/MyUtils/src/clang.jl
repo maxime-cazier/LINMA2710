@@ -2,6 +2,8 @@ import Clang_jll
 import MultilineStrings
 import InteractiveUtils
 
+inline_c(code) = HTML("""<code class="language-c">$code</code>""")
+
 function md_code(code, language)
     code = "```" * language * '\n' * code
     if code[end] != '\n'

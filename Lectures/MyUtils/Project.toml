@@ -13,6 +13,7 @@ InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Luxor = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 MultilineStrings = "1e8d2bf6-9821-4900-9a2f-4d87552df2bd"
+PlutoTeachingTools = "661c6b06-c737-4d37-b85c-46df65de6f69"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
@@ -25,4 +26,5 @@ InteractiveUtils = "1.11.0"
 Luxor = "4.1.0"
 Markdown = "1.11.0"
 MultilineStrings = "0.1.1"
+PlutoTeachingTools = "0.3.1"
 PlutoUI = "0.7.61"
