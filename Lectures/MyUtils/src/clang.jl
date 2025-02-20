@@ -2,24 +2,39 @@ import Clang_jll
 import MultilineStrings
 import InteractiveUtils
 
-inline_c(code) = HTML("""<code class="language-c">$code</code>""")
+abstract type Language end
+struct CLanguage <: Language end
+struct CppLanguage <: Language end
 
-function md_code(code, language)
-    code = "```" * language * '\n' * code
+source_extension(::CLanguage) = "c"
+source_extension(::CppLanguage) = "cpp"
+
+inline_code(code, ext::String) = HTML("""<code class="language-$ext">$code</code>""")
+inline_code(code, l::Language) = inline_code(code, source_extension(l))
+
+inline_c(code) = include_code(code, CLanguage())
+
+function md_code(code, ext::String)
+    code = "```" * ext * '\n' * code
     if code[end] != '\n'
         code *= '\n'
     end
     return Markdown.parse(code * "```")
 end
+md_code(code, l::Language) = md_code(code, source_extension(l))
 
 md_c(code) = md_code(code, "c")
 
-function compile(code; lib, emit_llvm = false, cflags = ["-O3"])
+function compile(code; lib, emit_llvm = false, cflags = ["-O3"], language::Language = CLanguage())
     path = mktempdir()
     main_file = joinpath(path, "main.c")
     bin_file = joinpath(path, ifelse(emit_llvm, "main.llvm", ifelse(lib, "lib.so", "bin")))
     write(main_file, code)
-    args = [main_file]
+    args = String[]
+    if language isa CppLanguage
+        push!(args, "-x")
+        push!(args, "c++")
+    end
     append!(args, cflags)
     if lib
         push!(args, "-fPIC")
@@ -29,6 +44,7 @@ function compile(code; lib, emit_llvm = false, cflags = ["-O3"])
         push!(args, "-S")
         push!(args, "-emit-llvm")
     end
+    push!(args, main_file)
     push!(args, "-o")
     push!(args, bin_file)
     try

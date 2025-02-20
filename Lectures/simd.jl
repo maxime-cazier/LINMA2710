@@ -26,18 +26,31 @@ Pkg.activate(".")
 using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, BenchmarkTools, PlutoTeachingTools
 
 # ╔═╡ 49aca9a0-ed40-11ef-1cf9-635242dfa821
-header("LINMA2710 - Scientific Computing", "P.-A. Absil and B. Legat")
+header(md"""LINMA2710 -- Scientific Computing
+Single Instruction Multiple Data (SIMD)""", "P.-A. Absil and B. Legat")
+
+# ╔═╡ 4d0f2c46-4651-4ba9-b08d-44c8494d2b60
+section("Motivation")
+
+# ╔═╡ 74d55b53-c917-460a-b59c-71b1f07f7cba
+frametitle("The need for parallelism")
+
+# ╔═╡ b348eb57-446b-42ec-9292-d5a77cd26e0c
+RobustLocalResource("https://www.karlrupp.net/wp-content/uploads/2018/02/42-years-processor-trend.png", "cache/42-years-processor-trend.png")
+
+# ╔═╡ b6ae6fcc-a77e-49c5-b380-06854844469e
+md"[Image source](https://www.karlrupp.net/2018/02/42-years-of-microprocessor-trend-data/)."
 
 # ╔═╡ 74ae5855-85e8-4615-bf98-e7819bc053d2
-section("History")
+frametitle("A bit of historical context")
 
 # ╔═╡ 0d17955c-6ddc-4d57-8600-8ad3229d4631
 hbox([md"""
 * **1972** : C language created by Dennis Ritchie and Ken Thompson to ease development of Unix (previously developed in **assembly**)
 * **1985** : C++ created by Bjarne Stroustrup
-* **2003** : Vikram Adve and Chris Lattner create LLVM
-* **2005** : Apple hires Chris Lattner
-* **2007** : Chris Lattner creates the LLVM-based compiler Clang
+* **2003** : LLVM started at University of Illinois
+* **2005** : Apple hires Chris Lattner from the university
+* **2007** : He then creates the LLVM-based compiler Clang
 * **2009** : Mozilla start developing an LLVM-based compiler for Rust
 * **2009** : Develpment starts on Julia, with LLVM-based compiler
 """,
@@ -49,14 +62,11 @@ hbox([md"""
 	    placeimage_from_url("https://julialang.org/assets/infra/logo.svg", Point(100, -100), scale = 0.15)
 	    arrow(Point(85, -85), Point(20, -15))
 		placeimage_from_url("https://llvm.org/img/LLVMWyvernSmall.png", Point(-30, 30), scale = 0.08)
-		boxed("LLVM Intermediate Representation", Point(0, 0))
+		boxed("LLVM Intermediate Representation (IR)", Point(0, 0))
 		arrow(Point(0, 10), Point(0, 85))
 		boxed("Assembly", Point(0, 100))
 	end 300 300)"""; style = Dict("width" => "100%")),
 ])
-
-# ╔═╡ d92d69c4-f6b8-4f53-89bc-bf183b7e603d
-section("Motivational example")
 
 # ╔═╡ f6674345-4b71-40f3-8d42-82697990d534
 frametitle("A sum function in C and Julia")
@@ -79,10 +89,13 @@ vec_float = rand(Float32, 2^16)
 # ╔═╡ 0b4c686c-912b-42ff-a7ef-970030808a74
 @btime julia_sum($vec_float)
 
+# ╔═╡ 8f4e6abd-8da8-42a5-b69f-ae76fa8fcf6b
+aside(tip(md"As accessing global variables is slow in Julia, it is important to add `$` in front of them when using `btime`. This is less critical in Pluto though as it handles global variables differently. To see why, try removing the `$`, you should see `1` allocations instead of zero."); v_offset=-300)
+
 # ╔═╡ 9956af59-12e9-4eb6-bf63-03e2936a5912
 sum_float_options = hbox([Div(
 		md"""Element type : $(@bind sum_float_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))"""; style = Dict("flex-grow" => "1")),
-		md"""$(@bind sum_float_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"]))"""
+		md"""$(@bind sum_float_flags MultiCheckBox(["-ffast-math", "-msse3", "-mavx2", "-mavx512f"]))"""
 ],
 );
 
@@ -91,15 +104,28 @@ qa(md"How to speed up the C code ?",
 md"""
 Try passing the following flags to Clang by selecting them and waiting for the benchmark timing to refresh: $(sum_float_options)
 
-What are they doing ? We'll see in the lecture...
+What are they doing ? We'll see in the slide...
 """
+)
+
+# ╔═╡ 2a404744-686c-4b8a-988a-8ff99603f2d4
+frametitle("Summing with SIMD")
+
+# ╔═╡ 2acc14b4-4e65-4dc1-950a-df9ed3a0892d
+Resource(
+	"https://i0.wp.com/juliacomputing.com/assets/img/new/auto-vectorization2.png",
+	:alt => "SIMD"
 )
 
 # ╔═╡ 66a18765-b8a4-41af-8711-80d08b0ef4c4
 frametitle("Faster Julia code")
 
 # ╔═╡ f853de2d-ca27-42d6-af9a-194ee6bb7d89
-qa(md"How to get the same speed up from the Julia code ?", md"The `-O3` option need to be passed to the `julia` session that started Pluto. For `-m...`, it's done automatically when Julia detects the possibility (using `@fastmath` and `@inbounds` are usually required for this) or when forced with `@simd`. This allows enabling these to only part of the code and not a whole library")
+Foldable(md"How to get the same speed up from the Julia code ?", md"
+* The `-O3` option need to be passed to the `julia` session that started Pluto, `-O2` is used by default.
+* Instead of applying `-fast-math` to the whole library, the macro `@fastmath` allows to apply it to a selected part of the code.
+* In order to accurately throw the out of bound error for the **first** index that is out of bound, Julia will prevent SIMD to be applied. The bound checking also makes it harder to parallelise. To circumvent this, check the bounds outside of the loop and then use `@inbounds` to disable bound checks inside the loop.
+* The use of SIMD can also be forced with `@simd`.")
 
 # ╔═╡ e437157d-e30a-498f-a031-a603048caed0
 function julia_sum_fast(v::Vector{T}) where {T}
@@ -113,11 +139,76 @@ end
 # ╔═╡ cce70070-5938-4f44-8181-2fb6158c419b
 @btime julia_sum_fast($vec_float)
 
+# ╔═╡ ad4e2ac1-6a51-4338-ae38-15a2b817020d
+function julia_sum_simd(v::Vector{T}) where {T}
+	total = zero(T)
+	@simd for i in eachindex(v)
+		total += v[i]
+	end
+	return total
+end
+
+# ╔═╡ 70ab5cde-5856-451d-9095-864367b6c207
+@btime julia_sum_simd($vec_float)
+
 # ╔═╡ e432159e-f3f2-412d-b559-155674f732f6
 frametitle("Careful with fast math")
 
+# ╔═╡ b19154d8-cb88-4aac-b76a-18f647672d70
+Foldable(md"Why are the three elements in the center of the vector ignored in this example ?", md"In a large sum, the `total` variable become much larger than each summand. Because of this, significant roundoff errors can occur. These roundoff errors cannot be added to the `total` variable as it is too large but it may be added to the summands as they are smaller so as to compensate the error. Here, instead of considering a large sum, we just used a large first summand to simplify but you can consider `1` as being the sum of a large amounds of preceding elements in the sum to make it more realistic.")
+
+# ╔═╡ 4cd17588-8f3c-447e-890b-fc881575db8d
+test_kahan = Cfloat[1.0, eps(Cfloat)/4, eps(Cfloat)/4, eps(Cfloat)/4, 1000eps(Cfloat)]
+
+# ╔═╡ 3469f9fe-2512-4fb9-81b8-dd1d39e20c38
+sum(Float64.(test_kahan))
+
+# ╔═╡ 8df0ed24-b5bc-4cf8-b507-37bd8fc79be2
+md"To improve the accuracy this, we consider the [Kahan summation algorithm](https://en.wikipedia.org/wiki/Kahan_summation_algorithm)."
+
+# ╔═╡ c8ae3959-6428-4937-9212-171ea6ab0888
+hbox([Div(
+		md"""Optimization level : $(@bind sum_kahan_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))"""; style = Dict("flex-grow" => "1")),
+		md"""Enable `-ffast-math` ? $(@bind sum_kahan_fastmath CheckBox())"""
+],
+)
+
+# ╔═╡ 52cd9d6e-0e24-45ae-a602-1b9d9edc67ae
+Foldable(md"What happens when `-ffast-math` is enabled ?", md"The flag allows LLVM to optimize out the code to be exactly the as the code of `c_sum`! This does not happen at `-O0`, so the optimization level also needs to be increased to see this.")
+
+# ╔═╡ 1a4f7389-9d1b-4008-8896-76ecc409ab1f
+md"For further details, see [this blog post](https://simonbyrne.github.io/notes/fastmath/)."
+
+# ╔═╡ a0389720-9ed7-4534-87ac-5b61e5c2470d
+aside(tip(md"`eps` gives the difference between `1` and the number closest to `1`. See also `prevfloat` and `nextfloat`."), v_offset = -600)
+
+# ╔═╡ abf284e9-75f1-42f4-b559-8720f56b02a2
+sum_kahan_code, sum_kahan_lib = compile_lib("""
+float sum_kahan(float* vec, int length) {
+    float total, c, t, y;
+    int i;
+    total = c = 0.0f;
+    for (i = 0; i < length; i++) {
+      y = vec[i] - c;
+      t = total + y;
+      c = (t - total) - y;
+      total = t;
+   }
+   return total;
+}
+""", lib = true, cflags = String[sum_kahan_opt; ifelse(sum_kahan_fastmath, ["-ffast-math"], String[])]);
+
+# ╔═╡ 839f5630-a405-4a2e-9046-cd0d1fd9c37e
+c_sum_kahan(x::Vector{Cfloat}) = ccall(("sum_kahan", sum_kahan_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
+
+# ╔═╡ 919045cb-90cc-4cbc-be2a-5b2580a93de9
+c_sum_kahan(test_kahan)
+
+# ╔═╡ ee269b38-a5e1-467a-a91e-f7a7f1f54509
+aside(sum_kahan_code, v_offset = -400)
+
 # ╔═╡ 8a552e21-e51b-457d-b974-148537db6cae
-section("Single Instruction Multiple Data (SIMD)")
+section("SIMD inspection")
 
 # ╔═╡ 639e0ece-502b-4379-a932-32c0d119cc2f
 frametitle("Instruction sets")
@@ -133,13 +224,20 @@ These give the prefix `vp` to the instruction names that stands from *Vectorized
 | Streaming SIMD Extension (SSE) | 128-bit           | `%xmm`   |
 | Advanced Vector Extensions (AVX) | 256-bit           | `%ymm`   |
 | AVX-512  | 512-bit           | `%zmm`   |
-
-To determine which instruction set is supported for your computer, look at the `Flags` list in the output of `lscpu`.
-We can check in the [Intel® Intrinsics Guide](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#) that `avx`, `avx2` and `avx_vnni` are in the AVX family.
 """
 
 # ╔═╡ 3afaf82a-4843-4afa-8541-1a26d7e943a1
 run(pipeline(`lscpu`, `grep Flag`))
+
+# ╔═╡ 3d4335d5-f526-4869-b3e7-a0b36443cc41
+aside(tip(md"To determine which instruction set is supported for your computer, look at the `Flags` list in the output of `lscpu`.
+We can check in the [Intel® Intrinsics Guide](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#) that `avx`, `avx2` and `avx_vnni` are in the AVX family."), v_offset = -280)
+
+# ╔═╡ c66fc30b-355d-43fa-9950-f943e3a095a6
+frametitle("SIMD at LLVM level")
+
+# ╔═╡ 7a5620c8-2ca0-4422-851d-39c5b65226e5
+md"How can you check that SIMD is enable ? Let's check at the level of LLVM IR."
 
 # ╔═╡ fc278dad-6133-466b-8c3a-775353bdd64a
 function f(x1, x2, x3, x4, y1, y2, y3, y4)
@@ -150,133 +248,85 @@ function f(x1, x2, x3, x4, y1, y2, y3, y4)
 	return z1, z2, z3, z4
 end
 
-# ╔═╡ 8ba06c7f-514f-4699-bbf4-38d13a7f0cad
-code_llvm(sum, Tuple{Vector{Int}}, debuginfo=:none)
+# ╔═╡ 1fa393f5-ccea-4199-bf23-16fc1d6a1969
+aside(tip(md"If we see `add i64`, it means that each `Int64` is added independently"), v_offset = -200)
+
+# ╔═╡ 220127a6-dba3-448a-a12d-f9c523009f74
+frametitle("Packing the data to enable SIMD")
 
 # ╔═╡ e4ef3a2b-ba92-4c86-9ff2-2b968de27ea5
-function f2(x, y)
+function f_broadcast(x, y)
 	z = x .+ y
 	return z
 end
 
-# ╔═╡ 9b2e5748-dce0-4d04-a454-ee3833d59a44
-md"`vpadd` for Vectorized Packed add"
+# ╔═╡ 765aef1b-ffd1-4851-9b15-0ad9df4980f4
+@code_llvm debuginfo=:none f_broadcast((1, 2, 3, 4), (1, 2, 3, 4))
 
-# ╔═╡ b4021d54-42e0-468d-9c10-515328e76577
-@code_llvm debuginfo=:none f2(ntuple(Int8, Val(32)), ntuple(Int8, Val(32)))
+# ╔═╡ 7bbb30c8-3407-4a18-aa50-8b8f6f37e8a3
+aside(tip(md"`load <4 x i64>` means that 4 `Int64` are loaded into a 256-bit wide SIMD unit."), v_offset = -200)
 
-# ╔═╡ 6cc66e41-9598-4f78-9332-6e6c02033b70
-@code_native debuginfo=:none f2(ntuple(Int8, Val(32)), ntuple(Int8, Val(32)))
+# ╔═╡ c7a4a182-6503-4d3d-9f49-8b1b2e3dc499
+frametitle("SIMD at assembly level")
 
-# ╔═╡ 293226a1-d575-4e95-813e-ba8e7abd79b2
-function my_copy(a::Vector{Int}, b::Vector{Int})
-	for i in 1:length(a)
-		@inbounds a[i] = b[i]
-	end
-end
+# ╔═╡ 9e48a50e-e120-4838-91d7-264522ac1723
+@code_native debuginfo=:none f_broadcast((1, 2, 3, 4), (1, 2, 3, 4))
 
-# ╔═╡ b32e85ed-df6c-49d5-be66-b925bd773faf
-begin
-	@code_llvm raw = false debuginfo = :none optimize = true my_copy([-1, 1], [0, 0])
-end
+# ╔═╡ 7530ea93-11fd-4931-9dd4-a5e820f8b540
+aside(tip(md"The suffic `v` in front of the instruction stands for `vectorized`. It means it is using a SIMD unit."), v_offset = -300)
+
+# ╔═╡ a0abb64b-6dc2-4e98-bdfd-5de9b5c97897
+frametitle("Tuples implementing the array interface")
+
+# ╔═╡ a7e4be26-d088-47fe-b0ce-e12cb9936599
+md"`N` = $(@bind N Slider(2:4, default=2, show_value = true))"
 
 # ╔═╡ 3a7df4f4-0f7b-4a51-8d6a-dcba9a97c18f
 let
     T = Float64
-	A = rand(SMatrix{2,2,T})
-	x = rand(SVector{2,T})
+	A = rand(SMatrix{N,N,T})
+	x = rand(SVector{N,T})
 	@code_llvm debuginfo=:none A * x
 end
 
+# ╔═╡ 4d0ba8c4-2d94-400e-a106-467db6e3fc0c
+aside(tip(md"Small arrays that are allocated on the stack like tuples and implemented in `StaticArrays.jl`. Operating on them leverages SIMD."), v_offset = -400)
+
+# ╔═╡ 403bb0f1-5514-486e-9f81-fba9d6031ee1
+section("Auto-Vectorization")
+
 # ╔═╡ b9ad74c5-d99d-4129-afa2-4ff62eedf796
-frametitle("LLVM Loop Vectorizer")
+frametitle("LLVM Loop Vectorizer for a C array")
 
-# ╔═╡ 8f0f8590-5751-4b8f-95d2-9c3dffb9b085
-Resource(
-	"https://i0.wp.com/juliacomputing.com/assets/img/new/auto-vectorization2.png",
-	:alt => "SIMD"
-)
+# ╔═╡ 41d1448e-72c9-431c-a614-c7922e35c883
+frametitle("LLVM Loop Vectorizer for a C++ vector")
 
-# ╔═╡ 1997274f-f016-43ea-a8c6-2a607ac4b195
-vec_int = rand(Int64, 10^3);
+# ╔═╡ 49ca9d35-cce8-45fd-8c2e-1dd92f056c93
+aside(tip(md"Easily call C++ code from Julia or Python by adding a C interface like the `c_sum` in this example."), v_offset = -240)
 
-# ╔═╡ a1e7e896-bd0b-43a9-afbb-653f6d493aea
-vec_floats = rand(Float16, 10^3);
+# ╔═╡ 48d3e554-28f3-4ca3-a111-8a9904771426
+function cpp_sum_code(T)
+	return """
+#include <vector>
 
-# ╔═╡ a71f00ab-b5ac-47e2-8745-17f837064d8d
-@btime sum(vec_int)
+$T my_sum(std::vector<$T> vec) {
+  $T total = 0;
+  for (int i = 0; i < vec.size(); i++) {
+    total += vec[i];
+  }
+  return total;
+}
 
-# ╔═╡ 3105d963-0e89-43ca-b6f9-daaf8aec70b2
-@btime sum(vec_floats)
-
-# ╔═╡ 4dd4ce0d-3e48-4af1-bb9d-ab3f121d1a7c
-md"""
-Also need `@inbounds` otherwise the compiler is worried that SIMD will mess up with errors.
-"""
-
-# ╔═╡ aed45648-3bfa-4df8-907f-7c711bef5b65
-function mysum_simd(x::Vector{T}) where {T}
-	s = zero(T)
-	@simd for v in x
-		s += v
-	end
-	return s
+extern "C" {
+$T c_sum($T *array, int length) {
+  std::vector<$T> v;
+  v.assign(array, array + length);
+  return my_sum(v);
+}}"""
 end;
-
-# ╔═╡ 39e3ff9c-892e-4476-8b81-802a9d6ef8b5
-@btime mysum_simd(vec_floats)
-
-# ╔═╡ a26fe835-e205-418b-a2fe-45387e313e85
-function mysum(x::Vector{T}) where {T}
-	s = zero(T)
-	for v in x
-		s += v
-	end
-	return s
-end;
-
-# ╔═╡ 8302c524-1f1c-401f-a39c-59b5e4869870
-@btime mysum(vec_int)
-
-# ╔═╡ e9cb0525-fb17-4429-844b-797b3c0aaae4
-@btime mysum(vec_floats)
-
-# ╔═╡ 10f0f454-f5b8-43ad-a2c5-94ad4945271f
-code_llvm(mysum, Tuple{Vector{Float64}}, debuginfo=:none)
-
-# ╔═╡ a71d878e-6182-4adc-8551-1334fee37e19
-code_llvm(mysum, Tuple{Vector{Int}}, debuginfo=:none)
-
-# ╔═╡ 0bfeb5db-a332-4f95-b8c8-39b53c4d5822
-@code_llvm debuginfo=:none mysum([1, 2, 3, 4])
 
 # ╔═╡ 529ba439-40fe-4d93-88c5-797c0a9fc6ee
 frametitle("LLVM Superword-Level Parallelism (SLP) Vectorizer")
-
-# ╔═╡ e699def3-f554-4a82-b3f2-52963f82bec4
-a = rand(10^7)
-
-# ╔═╡ a7c282ff-a167-4b0d-8bbf-831335bbca7e
-hbox([
-	Div(md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))"""; style="flex-grow: 1"),
-	md"""$(@bind sum_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"]))""",
-])
-
-# ╔═╡ 3a530df7-8e1b-444c-9164-d9a3e315afe5
-sum_code, sum_lib = compile_lib("""
-double sum(double *vec, int length) {
-    double total = 0;
-    for (int i = 0; i < length; i++) {
-        total = total + vec[i];
-    }
-    return total;
-}""", lib = true);
-
-# ╔═╡ 1c8fc81d-c1a8-40ac-b51c-bcdf5df41ae8
-sum_code
-
-# ╔═╡ 9268e690-6ade-433f-a3fd-a7f2d7992c64
-c_sum(X::Vector{Float64}) = ccall(("sum", sum_lib), Float64, (Ptr{Float64}, Cint), X, length(X))
 
 # ╔═╡ 69c872e1-966a-4a7a-a90f-d13bc108b801
 f(a, b) = (a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4])
@@ -287,12 +337,53 @@ f(a, b) = (a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4])
 # ╔═╡ bfb3b635-85b2-4a1e-a16c-5106b6495d09
 @code_llvm debuginfo=:none f((1, 2, 3, 4), (5, 6, 7, 8))
 
+# ╔═╡ 594cb702-35ff-4932-93cb-8cdbd53b7e27
+frametitle("Inspection with godbolt Compiler Explorer")
+
+# ╔═╡ aa153cd9-0118-4f2a-802e-fae8c302ad4b
+html"""<iframe width="800px" height="400px" src="https://godbolt.org/e#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U8lJL6yAngGVG6AMKpaAVxYMQAJlIOAMngMmABy7gBGmMQgAGykAA6oCoS2DM5uHt7xickCAUGhLBFRsZaY1ilCBEzEBGnunj6l5QKV1QR5IeGRMRZVNXUZjX3tgZ2F3dEAlBaorsTI7BwAbqh46ADU/KgQgQTrTFyk67v7PseC62GH53thZycAVACCk%2BsApADsAEJvGk/r6yebwArF8NCCACLvADMUIO6we6wg8LeXi%2Bly4kze0J%2BfwBQNBXEhMLhXgRSKYZNR6LuWJxv3%2BgJBXy8xOxcK45ORnOpGLpuMZBK%2B0LZsNOXMp7zRly8/IZnwhHGmtE4wN4ng4WlIqE4jnWClm80wUuhPFIBE0SumAGsQNDJAA6SQADi8Gkk0WiGmB0I%2Bzud0hVHEk6st2s4vAUIA05st0zgsCQaBYcTokXIlGTqfoUWQyAMRi4AE4uDGaLQCJEoxAwmGwoFqgBPThm%2BvMYiNgDyYW0ZQt3F4ybYgk7DFozc1vCwYVcwEcYloUYHpCwLEMwHEk5XeGIfbwS0wS61mFUZVclZbvF2mCDWtoeDCxCbziwl/NxDwLDfB%2BIYUSmAhTA1yMe8jDjPgDGABQADU8EwAB3Ts4kYN9%2BEEEQxHYKQZEERQVHULddEOAsTDMfQHyjSBplQOIbAEJcAFpO2hdYGLXJZVC8XhUB/D8sEoiBpiaOjPAgBwBgaHx/FGAoihAD4siSESJO8HwEiUlIOlk7oFOEiphhUrxGhvPcWmGLSuiiXSDJcepVN6NoLPGKyhMNBYJGVVVQy3HUOHWVRnWiBjokkdZ83XdZiwdLgHQ0JFcEIEgTUxXh%2By0SYbTtaEHWhaJnSkaEi2dItgQ%2BaFiuBfROBDUgv1LGMNS1XzI2jWNJ3jGBEBQVAUzTMgKAgLM%2BpQYApB8ctK2Iatay3NsmzfOaO27XtrDfIdGAIUdxzDadZ3nWhFzfVd103LV8F3coDyPXgTzPC9l2vW9eHvR9nwwRYzQID8v2XH8/yUQDgI3QJQHaiCmCg2CEKQlDlzQ4RRHEbD4bwtQw10HwSJAUxjHMF6BOo2iUkY5jWPYzjuN4tZD3gISTOaUTxNsjJDmk/JLL0dSclSZnPEOLmRKcuTDj0sy2hUkX6ZE1oaiF7oRZs9I%2BYc2WZI5zEZjmdyNaDNVSEa7jOH8wLgtC4A80ix0yQgBKiGIZLJlSuNMuhLxoskIqNCLSRvXdD4vAUoMaoN8MOBamM0qtKqOC42qJA0Bqw2atr0umH8kjsSQgA%3D%3D"></iframe>"""
+
+# ╔═╡ ea10cb8a-a95e-400c-be86-1633a3833ec5
+md"[Example source](https://llvm.org/docs/Vectorizers.html)"
+
+# ╔═╡ 7dd1fa44-ed35-4abe-853f-58fe4085b441
+frametitle("Further readings")
+
 # ╔═╡ fcf5c210-c100-4534-a65b-9bee23c518da
 md"""
-Sources:
+Slides inspired from:
 * [SIMD in Julia](https://www.youtube.com/watch?v=W1hXttRmuks&t=337s)
 * [Demystifying Auto-vectorization in Julia](https://www.juliabloggers.com/demystifying-auto-vectorization-in-julia/)
+* [Auto-Vectorization in LLVM](https://llvm.org/docs/Vectorizers.html)
 """
+
+# ╔═╡ 8d24ad58-fd1a-43f2-b1ce-ab02dd3a5df6
+options = vbox([
+	md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))""",
+	md"""Optimization level : $(@bind sum_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))""",
+	md"""$(@bind sum_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"], orientation = :column))""",
+]);
+
+# ╔═╡ bc8bc245-6c10-4759-a85b-b407ef016c60
+aside(options, v_offset = -240)
+
+# ╔═╡ 69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
+emit_llvm(cpp_sum_code(sum_type), cflags = [sum_opt; sum_flags], language = CppLanguage());
+
+# ╔═╡ 972c1194-9d5f-438a-964f-176713bab912
+aside(md_code(cpp_sum_code(sum_type), CppLanguage()), v_offset = -620)
+
+# ╔═╡ 1cb7d80a-84a0-41a3-b089-6ffefa44f041
+aside(options, v_offset = -330)
+
+# ╔═╡ 8e3738ac-d742-4c60-ade8-f5565ea2d1bf
+cpp_sum_float_code, cpp_sum_float_lib = compile_lib(cpp_sum_code("float"), lib = true, cflags = [sum_opt; sum_flags], language = CppLanguage());
+
+# ╔═╡ 57005169-054b-4912-b0ba-742a56ee3f5f
+cpp_sum(x::Vector{Cfloat}) = ccall(("c_sum", cpp_sum_float_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
+
+# ╔═╡ 7ab127df-8afd-4ebe-8403-9ca3bcc2f8e3
+@btime cpp_sum($vec_float)
 
 # ╔═╡ 174407b5-75be-4930-a476-7f2bfa35cdf0
 function c_sum_code(T)
@@ -304,7 +395,7 @@ $T sum($T *vec, int length) {
     }
     return total;
 }"""
-end
+end;
 
 # ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
 sum_float_code, sum_float_lib = compile_lib(c_sum_code("float"), lib = true, cflags = [sum_float_opt; sum_float_flags]);
@@ -318,17 +409,29 @@ c_sum(x::Vector{Cfloat}) = ccall(("sum", sum_float_lib), Cfloat, (Ptr{Cfloat}, C
 # ╔═╡ 691d01a2-12fc-4782-a9f9-a732746285c6
 @btime c_sum($vec_float)
 
-# ╔═╡ 2d67e6ba-fa28-4d83-9e17-4b70e473b0b3
-@time c_sum(a)
+# ╔═╡ c80ad92b-853d-4bc1-ad7c-0dd1ad48d1c4
+c_sum(test_kahan[[1, 5]])
+
+# ╔═╡ 570b50d9-64d8-408a-8f05-6f81716f20c2
+c_sum(test_kahan)
 
 # ╔═╡ e6fac999-9f54-42f9-a1b7-3fd883b891ab
-emit_llvm(c_sum_code(sum_type), cflags = ["-O3"; sum_flags])
+emit_llvm(c_sum_code(sum_type), cflags = [sum_opt; sum_flags]);
+
+# ╔═╡ a7421d94-6966-4b71-b8c2-7553b209f146
+aside(md_c(c_sum_code(sum_type)), v_offset = -420)
+
+# ╔═╡ 9d06d594-148c-4f36-b401-b7f7922e2943
+TableOfContents(depth = 1)
 
 # ╔═╡ Cell order:
 # ╟─49aca9a0-ed40-11ef-1cf9-635242dfa821
+# ╟─4d0f2c46-4651-4ba9-b08d-44c8494d2b60
+# ╟─74d55b53-c917-460a-b59c-71b1f07f7cba
+# ╟─b348eb57-446b-42ec-9292-d5a77cd26e0c
+# ╟─b6ae6fcc-a77e-49c5-b380-06854844469e
 # ╟─74ae5855-85e8-4615-bf98-e7819bc053d2
 # ╟─0d17955c-6ddc-4d57-8600-8ad3229d4631
-# ╟─d92d69c4-f6b8-4f53-89bc-bf183b7e603d
 # ╟─f6674345-4b71-40f3-8d42-82697990d534
 # ╟─a38807e2-d901-4467-b35e-248da491abff
 # ╠═a841d535-c32b-4bb6-8132-600253038508
@@ -339,53 +442,77 @@ emit_llvm(c_sum_code(sum_type), cflags = ["-O3"; sum_flags])
 # ╠═691d01a2-12fc-4782-a9f9-a732746285c6
 # ╠═0b4c686c-912b-42ff-a7ef-970030808a74
 # ╟─0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
+# ╟─8f4e6abd-8da8-42a5-b69f-ae76fa8fcf6b
 # ╟─9956af59-12e9-4eb6-bf63-03e2936a5912
+# ╟─2a404744-686c-4b8a-988a-8ff99603f2d4
+# ╟─2acc14b4-4e65-4dc1-950a-df9ed3a0892d
 # ╟─66a18765-b8a4-41af-8711-80d08b0ef4c4
 # ╟─f853de2d-ca27-42d6-af9a-194ee6bb7d89
 # ╠═e437157d-e30a-498f-a031-a603048caed0
 # ╠═cce70070-5938-4f44-8181-2fb6158c419b
+# ╠═ad4e2ac1-6a51-4338-ae38-15a2b817020d
+# ╠═70ab5cde-5856-451d-9095-864367b6c207
 # ╟─e432159e-f3f2-412d-b559-155674f732f6
+# ╟─b19154d8-cb88-4aac-b76a-18f647672d70
+# ╠═4cd17588-8f3c-447e-890b-fc881575db8d
+# ╠═3469f9fe-2512-4fb9-81b8-dd1d39e20c38
+# ╠═c80ad92b-853d-4bc1-ad7c-0dd1ad48d1c4
+# ╠═570b50d9-64d8-408a-8f05-6f81716f20c2
+# ╟─8df0ed24-b5bc-4cf8-b507-37bd8fc79be2
+# ╠═919045cb-90cc-4cbc-be2a-5b2580a93de9
+# ╟─c8ae3959-6428-4937-9212-171ea6ab0888
+# ╟─52cd9d6e-0e24-45ae-a602-1b9d9edc67ae
+# ╟─1a4f7389-9d1b-4008-8896-76ecc409ab1f
+# ╟─839f5630-a405-4a2e-9046-cd0d1fd9c37e
+# ╟─a0389720-9ed7-4534-87ac-5b61e5c2470d
+# ╟─ee269b38-a5e1-467a-a91e-f7a7f1f54509
+# ╟─abf284e9-75f1-42f4-b559-8720f56b02a2
 # ╟─8a552e21-e51b-457d-b974-148537db6cae
 # ╟─639e0ece-502b-4379-a932-32c0d119cc2f
 # ╟─1ddcda8b-fa23-4802-852c-e70b1777c2e4
 # ╠═3afaf82a-4843-4afa-8541-1a26d7e943a1
+# ╟─3d4335d5-f526-4869-b3e7-a0b36443cc41
+# ╟─c66fc30b-355d-43fa-9950-f943e3a095a6
+# ╟─7a5620c8-2ca0-4422-851d-39c5b65226e5
 # ╠═fc278dad-6133-466b-8c3a-775353bdd64a
 # ╠═6869a1d9-b662-4c66-9adb-fc72932eb6c5
-# ╠═8ba06c7f-514f-4699-bbf4-38d13a7f0cad
+# ╟─1fa393f5-ccea-4199-bf23-16fc1d6a1969
+# ╟─220127a6-dba3-448a-a12d-f9c523009f74
 # ╠═e4ef3a2b-ba92-4c86-9ff2-2b968de27ea5
-# ╟─9b2e5748-dce0-4d04-a454-ee3833d59a44
-# ╠═b4021d54-42e0-468d-9c10-515328e76577
-# ╠═6cc66e41-9598-4f78-9332-6e6c02033b70
-# ╠═293226a1-d575-4e95-813e-ba8e7abd79b2
-# ╠═b32e85ed-df6c-49d5-be66-b925bd773faf
+# ╠═765aef1b-ffd1-4851-9b15-0ad9df4980f4
+# ╟─7bbb30c8-3407-4a18-aa50-8b8f6f37e8a3
+# ╟─c7a4a182-6503-4d3d-9f49-8b1b2e3dc499
+# ╠═9e48a50e-e120-4838-91d7-264522ac1723
+# ╟─7530ea93-11fd-4931-9dd4-a5e820f8b540
+# ╟─a0abb64b-6dc2-4e98-bdfd-5de9b5c97897
+# ╟─a7e4be26-d088-47fe-b0ce-e12cb9936599
 # ╠═3a7df4f4-0f7b-4a51-8d6a-dcba9a97c18f
+# ╟─4d0ba8c4-2d94-400e-a106-467db6e3fc0c
+# ╟─403bb0f1-5514-486e-9f81-fba9d6031ee1
 # ╟─b9ad74c5-d99d-4129-afa2-4ff62eedf796
-# ╟─8f0f8590-5751-4b8f-95d2-9c3dffb9b085
-# ╠═1997274f-f016-43ea-a8c6-2a607ac4b195
-# ╠═a1e7e896-bd0b-43a9-afbb-653f6d493aea
-# ╠═a71f00ab-b5ac-47e2-8745-17f837064d8d
-# ╠═8302c524-1f1c-401f-a39c-59b5e4869870
-# ╠═3105d963-0e89-43ca-b6f9-daaf8aec70b2
-# ╠═e9cb0525-fb17-4429-844b-797b3c0aaae4
-# ╠═39e3ff9c-892e-4476-8b81-802a9d6ef8b5
-# ╟─4dd4ce0d-3e48-4af1-bb9d-ab3f121d1a7c
-# ╠═aed45648-3bfa-4df8-907f-7c711bef5b65
-# ╠═a26fe835-e205-418b-a2fe-45387e313e85
-# ╠═10f0f454-f5b8-43ad-a2c5-94ad4945271f
-# ╠═a71d878e-6182-4adc-8551-1334fee37e19
-# ╠═0bfeb5db-a332-4f95-b8c8-39b53c4d5822
-# ╟─529ba439-40fe-4d93-88c5-797c0a9fc6ee
-# ╠═e699def3-f554-4a82-b3f2-52963f82bec4
-# ╠═1c8fc81d-c1a8-40ac-b51c-bcdf5df41ae8
-# ╠═9268e690-6ade-433f-a3fd-a7f2d7992c64
-# ╠═2d67e6ba-fa28-4d83-9e17-4b70e473b0b3
-# ╟─a7c282ff-a167-4b0d-8bbf-831335bbca7e
 # ╟─e6fac999-9f54-42f9-a1b7-3fd883b891ab
-# ╠═3a530df7-8e1b-444c-9164-d9a3e315afe5
+# ╟─a7421d94-6966-4b71-b8c2-7553b209f146
+# ╟─bc8bc245-6c10-4759-a85b-b407ef016c60
+# ╟─41d1448e-72c9-431c-a614-c7922e35c883
+# ╟─69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
+# ╠═7ab127df-8afd-4ebe-8403-9ca3bcc2f8e3
+# ╠═57005169-054b-4912-b0ba-742a56ee3f5f
+# ╟─972c1194-9d5f-438a-964f-176713bab912
+# ╟─1cb7d80a-84a0-41a3-b089-6ffefa44f041
+# ╟─49ca9d35-cce8-45fd-8c2e-1dd92f056c93
+# ╟─8e3738ac-d742-4c60-ade8-f5565ea2d1bf
+# ╟─48d3e554-28f3-4ca3-a111-8a9904771426
+# ╟─529ba439-40fe-4d93-88c5-797c0a9fc6ee
 # ╠═69c872e1-966a-4a7a-a90f-d13bc108b801
 # ╠═bfb3b635-85b2-4a1e-a16c-5106b6495d09
+# ╟─594cb702-35ff-4932-93cb-8cdbd53b7e27
+# ╟─aa153cd9-0118-4f2a-802e-fae8c302ad4b
+# ╟─ea10cb8a-a95e-400c-be86-1633a3833ec5
+# ╟─7dd1fa44-ed35-4abe-853f-58fe4085b441
 # ╟─fcf5c210-c100-4534-a65b-9bee23c518da
+# ╟─8d24ad58-fd1a-43f2-b1ce-ab02dd3a5df6
 # ╟─174407b5-75be-4930-a476-7f2bfa35cdf0
-# ╠═406dcb0d-b68d-40ec-8844-c5445cff88f6
-# ╠═dfc87f8b-1b29-4f3a-b674-6ddf16b9d1ce
-# ╠═d3c2d2b7-8f23-478b-b36b-c92552a6cf01
+# ╟─406dcb0d-b68d-40ec-8844-c5445cff88f6
+# ╟─dfc87f8b-1b29-4f3a-b674-6ddf16b9d1ce
+# ╟─d3c2d2b7-8f23-478b-b36b-c92552a6cf01
+# ╟─9d06d594-148c-4f36-b401-b7f7922e2943
