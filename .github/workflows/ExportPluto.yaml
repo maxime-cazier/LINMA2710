@@ -46,7 +46,7 @@ jobs:
             - name: Instantiate
               run: |
                 julia -e 'using Pkg
-                  Pkg.activate(".")
+                  Pkg.activate("Lectures")
                   Pkg.precompile()'
 
             - name: Run & export Pluto notebooks
