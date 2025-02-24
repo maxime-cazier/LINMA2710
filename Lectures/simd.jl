@@ -93,14 +93,18 @@ vec_float = rand(Float32, 2^16)
 @btime julia_sum($vec_float)
 
 # ╔═╡ 8f4e6abd-8da8-42a5-b69f-ae76fa8fcf6b
-aside(tip(md"As accessing global variables is slow in Julia, it is important to add `$` in front of them when using `btime`. This is less critical in Pluto though as it handles global variables differently. To see why, try removing the `$`, you should see `1` allocations instead of zero."); v_offset=-300)
+aside(tip(md"As accessing global variables is slow in Julia, it is important to add `$` in front of them when using `btime`. This is less critical in Pluto though as it handles global variables differently. To see why, try removing the `$`, you should see `1` allocations instead of zero."); v_offset=-400)
 
 # ╔═╡ 9956af59-12e9-4eb6-bf63-03e2936a5912
-sum_float_options = hbox([Div(
-		md"""Element type : $(@bind sum_float_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))"""; style = Dict("flex-grow" => "1")),
-		md"""$(@bind sum_float_flags MultiCheckBox(["-ffast-math", "-msse3", "-mavx2", "-mavx512f"]))"""
-],
-);
+sum_float_options = hbox([
+	Div(vbox([
+		md"""$(@bind sum_float_pragma_vectorize Select(["No pragma", "vectorize(disable)", "vectorize(enable)", "vectorize_width(1)", "vectorize_width(2)", "vectorize_width(4)", "vectorize_width(8)", "vectorize_width(16)"]))""",
+		md"""$(@bind sum_float_pragma_interleave Select(["No pragma", "interleave(disable)", "interleave(enable)", "interleave_count(1)", "interleave_count(2)", "interleave_count(4)", "interleave_count(8)"]))"""]),
+		; style = Dict("flex-grow" => "1")
+	),
+	md"""$(@bind sum_float_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))""",
+	md"""$(@bind sum_float_flags MultiCheckBox(["-ffast-math", "-msse3", "-mavx2", "-mavx512f"]))""",
+]);
 
 # ╔═╡ 0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
 qa(md"How to speed up the C code ?",
@@ -362,6 +366,8 @@ Slides inspired from:
 
 # ╔═╡ 8d24ad58-fd1a-43f2-b1ce-ab02dd3a5df6
 options = vbox([
+	md"""$(@bind sum_pragma_vectorize Select(["No pragma", "vectorize(disable)", "vectorize(enable)", "vectorize_width(1)", "vectorize_width(2)", "vectorize_width(4)", "vectorize_width(8)", "vectorize_width(16)"]))""",
+	md"""$(@bind sum_pragma_interleave Select(["No pragma", "interleave(disable)", "interleave(enable)", "interleave_count(1)", "interleave_count(2)", "interleave_count(4)", "interleave_count(8)"]))""",
 	md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))""",
 	md"""Optimization level : $(@bind sum_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))""",
 	md"""$(@bind sum_flags MultiCheckBox(["-msse3", "-mavx2", "-mavx512f", "-ffast-math"], orientation = :column))""",
@@ -389,10 +395,17 @@ cpp_sum(x::Vector{Cfloat}) = ccall(("c_sum", cpp_sum_float_lib), Cfloat, (Ptr{Cf
 @btime cpp_sum($vec_float)
 
 # ╔═╡ 174407b5-75be-4930-a476-7f2bfa35cdf0
-function c_sum_code(T)
-	return """
+function c_sum_code(T, pragmas = String[])
+	code = """
 $T sum($T *vec, int length) {
     $T total = 0;
+"""
+	if !isempty(pragmas)
+		code *= """
+	#pragma clang loop $(join(pragmas, ' '))
+"""
+	end
+	return code * """
     for (int i = 0; i < length; i++) {
         total += vec[i];
     }
@@ -401,7 +414,7 @@ $T sum($T *vec, int length) {
 end;
 
 # ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
-sum_float_code, sum_float_lib = compile_lib(c_sum_code("float"), lib = true, cflags = [sum_float_opt; sum_float_flags]);
+sum_float_code, sum_float_lib = compile_lib(c_sum_code("float", filter(!isequal("No pragma"), [sum_float_pragma_vectorize, sum_float_pragma_interleave])), lib = true, cflags = [sum_float_opt; sum_float_flags]);
 
 # ╔═╡ a38807e2-d901-4467-b35e-248da491abff
 sum_float_code
@@ -418,18 +431,19 @@ c_sum(test_kahan[[1, 5]])
 # ╔═╡ 570b50d9-64d8-408a-8f05-6f81716f20c2
 c_sum(test_kahan)
 
+# ╔═╡ 1e494794-7c9f-42bb-a06c-d617ee271c9b
+aside(sum_float_code, v_offset=-200)
+
 # ╔═╡ e6fac999-9f54-42f9-a1b7-3fd883b891ab
-emit_llvm(c_sum_code(sum_type), cflags = [sum_opt; sum_flags]);
+emit_llvm(c_sum_code(sum_type, filter(!isequal("No pragma"), [sum_pragma_vectorize, sum_pragma_interleave])), cflags = [sum_opt; sum_flags]);
 
 # ╔═╡ a7421d94-6966-4b71-b8c2-7553b209f146
-aside(md_c(c_sum_code(sum_type)), v_offset = -420)
-
-# ╔═╡ 9d06d594-148c-4f36-b401-b7f7922e2943
-TableOfContents(depth = 1)
+aside(md_c(c_sum_code(sum_type, "vectorize_width(8) interleave_count(1)")), v_offset = -420)
 
 # ╔═╡ Cell order:
 # ╟─49aca9a0-ed40-11ef-1cf9-635242dfa821
 # ╟─15625d6a-37b6-41a3-a25f-3aee327cf85d
+# ╟─aec8f068-9b0c-4e4c-a1ca-d88ec6a1b8ac
 # ╟─4d0f2c46-4651-4ba9-b08d-44c8494d2b60
 # ╟─74d55b53-c917-460a-b59c-71b1f07f7cba
 # ╟─b348eb57-446b-42ec-9292-d5a77cd26e0c
@@ -447,6 +461,7 @@ TableOfContents(depth = 1)
 # ╠═0b4c686c-912b-42ff-a7ef-970030808a74
 # ╟─0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
 # ╟─8f4e6abd-8da8-42a5-b69f-ae76fa8fcf6b
+# ╟─1e494794-7c9f-42bb-a06c-d617ee271c9b
 # ╟─9956af59-12e9-4eb6-bf63-03e2936a5912
 # ╟─2a404744-686c-4b8a-988a-8ff99603f2d4
 # ╟─2acc14b4-4e65-4dc1-950a-df9ed3a0892d
@@ -519,4 +534,3 @@ TableOfContents(depth = 1)
 # ╟─406dcb0d-b68d-40ec-8844-c5445cff88f6
 # ╟─dfc87f8b-1b29-4f3a-b674-6ddf16b9d1ce
 # ╟─d3c2d2b7-8f23-478b-b36b-c92552a6cf01
-# ╟─9d06d594-148c-4f36-b401-b7f7922e2943
