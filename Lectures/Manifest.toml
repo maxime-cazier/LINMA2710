@@ -1035,9 +1035,9 @@ version = "3.1.0"
 
 [[deps.Luxor]]
 deps = ["Base64", "Cairo", "Colors", "DataStructures", "Dates", "FFMPEG", "FileIO", "PolygonAlgorithms", "PrecompileTools", "Random", "Rsvg"]
-git-tree-sha1 = "134570038473304d709de27384621bd0810d23fa"
+git-tree-sha1 = "9234dbf7598ba767b9c380c86104faa37187ab95"
 uuid = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
-version = "4.1.0"
+version = "4.2.0"
 
     [deps.Luxor.extensions]
     LuxorExtLatex = ["LaTeXStrings", "MathTeXEngine"]
@@ -1144,7 +1144,7 @@ uuid = "1e8d2bf6-9821-4900-9a2f-4d87552df2bd"
 version = "0.1.1"
 
 [[deps.MyUtils]]
-deps = ["Clang_jll", "Colors", "DocumenterCitations", "HTTP", "Images", "InteractiveUtils", "Luxor", "Markdown", "MultilineStrings", "PlutoTeachingTools", "PlutoUI"]
+deps = ["Clang_jll", "Colors", "DocumenterCitations", "HTTP", "HypertextLiteral", "Images", "InteractiveUtils", "Luxor", "Markdown", "MultilineStrings", "PlutoTeachingTools", "PlutoUI"]
 path = "MyUtils"
 uuid = "5f08ea77-7f1f-482c-9564-31d94ae91ab8"
 version = "0.1.0"
@@ -1336,9 +1336,9 @@ uuid = "1d0040c9-8b98-4ee7-8388-3f51789ca0ad"
 version = "0.2.2"
 
 [[deps.PolygonAlgorithms]]
-git-tree-sha1 = "a5ded6396172cff3bacdd1354d190b93cb667c4b"
+git-tree-sha1 = "384967bb9b0dda05f9621e57c780dae5ca0c8574"
 uuid = "32a0d02f-32d9-4438-b5ed-3a2932b48f96"
-version = "0.2.0"
+version = "0.3.2"
 
 [[deps.Polynomials]]
 deps = ["LinearAlgebra", "OrderedCollections", "RecipesBase", "Requires", "Setfield", "SparseArrays"]
@@ -1766,9 +1766,9 @@ version = "1.0.0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "ee6f41aac16f6c9a8cab34e2f7a200418b1cc1e3"
+git-tree-sha1 = "b8b243e47228b4a3877f1dd6aee0c5d56db7fcf4"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.13.6+0"
+version = "2.13.6+1"
 
 [[deps.XSLT_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "XML2_jll", "Zlib_jll"]
@@ -1837,9 +1837,9 @@ version = "1.2.13+1"
 
 [[deps.Zstd_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "622cf78670d067c738667aaa96c553430b65e269"
+git-tree-sha1 = "446b23e73536f84e8037f5dce465e92275f6a308"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
-version = "1.5.7+0"
+version = "1.5.7+1"
 
 [[deps.gdk_pixbuf_jll]]
 deps = ["Artifacts", "Glib_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg", "Xorg_libX11_jll", "libpng_jll"]

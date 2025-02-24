@@ -29,9 +29,6 @@ using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, Benchma
 header(md"""LINMA2710 -- Scientific Computing
 Single Instruction Multiple Data (SIMD)""", "P.-A. Absil and B. Legat")
 
-# ╔═╡ 15625d6a-37b6-41a3-a25f-3aee327cf85d
-ChooseDisplayMode()
-
 # ╔═╡ 4d0f2c46-4651-4ba9-b08d-44c8494d2b60
 section("Motivation")
 
@@ -442,8 +439,6 @@ aside(md_c(c_sum_code(sum_type, "vectorize_width(8) interleave_count(1)")), v_of
 
 # ╔═╡ Cell order:
 # ╟─49aca9a0-ed40-11ef-1cf9-635242dfa821
-# ╟─15625d6a-37b6-41a3-a25f-3aee327cf85d
-# ╟─aec8f068-9b0c-4e4c-a1ca-d88ec6a1b8ac
 # ╟─4d0f2c46-4651-4ba9-b08d-44c8494d2b60
 # ╟─74d55b53-c917-460a-b59c-71b1f07f7cba
 # ╟─b348eb57-446b-42ec-9292-d5a77cd26e0c

@@ -1,4 +1,5 @@
 import PlutoUI
+using HypertextLiteral # for @htl
 
 function reset_width(width)
     return HTML("""
@@ -24,7 +25,11 @@ function img(file, args...)
 end
 
 function header(title, authors)
-    return HTML("<p align=center style=\"font-size: 40px;\">$title</p><p align=right><i>$authors<i></p>")
+    return @htl("""
+<p align=center style=\"font-size: 40px;\">$title</p><p align=right><i>$authors</i></p>
+$(PlutoTeachingTools.ChooseDisplayMode())
+$(PlutoUI.TableOfContents(depth=1))
+""")
 end
 section(t) = md"# $t"
 # with `##`, it's not centered but it works better with TableOfContents
