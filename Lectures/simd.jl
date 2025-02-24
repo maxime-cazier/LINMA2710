@@ -95,6 +95,7 @@ aside(tip(md"As accessing global variables is slow in Julia, it is important to 
 # ╔═╡ 9956af59-12e9-4eb6-bf63-03e2936a5912
 sum_float_options = hbox([
 	Div(vbox([
+		md"""$(@bind sum_float_pragma_fastmath Select(["No pragma", "float_control(precise, off)"]))""",
 		md"""$(@bind sum_float_pragma_vectorize Select(["No pragma", "vectorize(disable)", "vectorize(enable)", "vectorize_width(1)", "vectorize_width(2)", "vectorize_width(4)", "vectorize_width(8)", "vectorize_width(16)"]))""",
 		md"""$(@bind sum_float_pragma_interleave Select(["No pragma", "interleave(disable)", "interleave(enable)", "interleave_count(1)", "interleave_count(2)", "interleave_count(4)", "interleave_count(8)"]))"""]),
 		; style = Dict("flex-grow" => "1")
@@ -306,16 +307,30 @@ frametitle("LLVM Loop Vectorizer for a C array")
 frametitle("LLVM Loop Vectorizer for a C++ vector")
 
 # ╔═╡ 49ca9d35-cce8-45fd-8c2e-1dd92f056c93
-aside(tip(md"Easily call C++ code from Julia or Python by adding a C interface like the `c_sum` in this example."), v_offset = -240)
+aside(tip(md"Easily call C++ code from Julia or Python by adding a C interface like the `c_sum` in this example."), v_offset = -170)
 
 # ╔═╡ 48d3e554-28f3-4ca3-a111-8a9904771426
-function cpp_sum_code(T)
-	return """
+function cpp_sum_code(T; pragmas = String[], loop_pragmas = String[])
+	code = """
 #include <vector>
 
 $T my_sum(std::vector<$T> vec) {
   $T total = 0;
+"""
+	for pragma in loop_pragmas
+		code *= """
+  #pragma clang loop $pragma
+"""
+	end
+	code *= """
   for (int i = 0; i < vec.size(); i++) {
+"""
+	for pragma in pragmas
+		code *= """
+	#pragma $pragma
+"""
+	end
+    code *= """
     total += vec[i];
   }
   return total;
@@ -327,6 +342,7 @@ $T c_sum($T *array, int length) {
   v.assign(array, array + length);
   return my_sum(v);
 }}"""
+	return code
 end;
 
 # ╔═╡ 529ba439-40fe-4d93-88c5-797c0a9fc6ee
@@ -363,6 +379,7 @@ Slides inspired from:
 
 # ╔═╡ 8d24ad58-fd1a-43f2-b1ce-ab02dd3a5df6
 options = vbox([
+	md"""$(@bind sum_pragma_fastmath Select(["No pragma", "float_control(precise, off)"]))""",
 	md"""$(@bind sum_pragma_vectorize Select(["No pragma", "vectorize(disable)", "vectorize(enable)", "vectorize_width(1)", "vectorize_width(2)", "vectorize_width(4)", "vectorize_width(8)", "vectorize_width(16)"]))""",
 	md"""$(@bind sum_pragma_interleave Select(["No pragma", "interleave(disable)", "interleave(enable)", "interleave_count(1)", "interleave_count(2)", "interleave_count(4)", "interleave_count(8)"]))""",
 	md"""Element type : $(@bind sum_type Select(["char", "short", "int", "float", "double"], default = "int"))""",
@@ -371,13 +388,7 @@ options = vbox([
 ]);
 
 # ╔═╡ bc8bc245-6c10-4759-a85b-b407ef016c60
-aside(options, v_offset = -240)
-
-# ╔═╡ 69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
-emit_llvm(cpp_sum_code(sum_type), cflags = [sum_opt; sum_flags], language = CppLanguage());
-
-# ╔═╡ 972c1194-9d5f-438a-964f-176713bab912
-aside(md_code(cpp_sum_code(sum_type), CppLanguage()), v_offset = -620)
+aside(options, v_offset = -260)
 
 # ╔═╡ 1cb7d80a-84a0-41a3-b089-6ffefa44f041
 aside(options, v_offset = -330)
@@ -391,27 +402,48 @@ cpp_sum(x::Vector{Cfloat}) = ccall(("c_sum", cpp_sum_float_lib), Cfloat, (Ptr{Cf
 # ╔═╡ 7ab127df-8afd-4ebe-8403-9ca3bcc2f8e3
 @btime cpp_sum($vec_float)
 
+# ╔═╡ 8c23d4b7-9580-4563-9586-1e32358b9802
+cpp_sum_code_for_llvm = cpp_sum_code(
+	sum_type,
+	pragmas = filter(!isequal("No pragma"), [sum_pragma_fastmath]),
+	loop_pragmas = filter(!isequal("No pragma"), [sum_pragma_vectorize, sum_pragma_interleave]),
+);
+
+# ╔═╡ 972c1194-9d5f-438a-964f-176713bab912
+aside(md_code(cpp_sum_code_for_llvm, CppLanguage()), v_offset = -700)
+
 # ╔═╡ 174407b5-75be-4930-a476-7f2bfa35cdf0
-function c_sum_code(T, pragmas = String[])
+function c_sum_code(T; loop_pragmas = String[], pragmas = String[])
 	code = """
 $T sum($T *vec, int length) {
     $T total = 0;
 """
-	if !isempty(pragmas)
+	for pragma in loop_pragmas
 		code *= """
-	#pragma clang loop $(join(pragmas, ' '))
+	#pragma clang loop $pragma
 """
 	end
-	return code * """
+	code *= """
     for (int i = 0; i < length; i++) {
+"""
+	for pragma in pragmas
+		code *= """
+	    #pragma $pragma
+"""
+	end
+	code *= """
         total += vec[i];
     }
     return total;
 }"""
+	return code
 end;
 
 # ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
-sum_float_code, sum_float_lib = compile_lib(c_sum_code("float", filter(!isequal("No pragma"), [sum_float_pragma_vectorize, sum_float_pragma_interleave])), lib = true, cflags = [sum_float_opt; sum_float_flags]);
+sum_float_code, sum_float_lib = compile_lib(c_sum_code("float",
+	pragmas = filter(!isequal("No pragma"), [sum_float_pragma_fastmath]),
+	loop_pragmas = filter(!isequal("No pragma"), [sum_float_pragma_vectorize, sum_float_pragma_interleave]),
+), lib = true, cflags = [sum_float_opt; sum_float_flags]);
 
 # ╔═╡ a38807e2-d901-4467-b35e-248da491abff
 sum_float_code
@@ -431,11 +463,21 @@ c_sum(test_kahan)
 # ╔═╡ 1e494794-7c9f-42bb-a06c-d617ee271c9b
 aside(sum_float_code, v_offset=-200)
 
+# ╔═╡ 9cfd52a7-f5b9-424a-b1a4-b81f63e3b30c
+c_sum_code_for_llvm = c_sum_code(
+	sum_type,
+	pragmas = filter(!isequal("No pragma"), [sum_pragma_fastmath]),
+	loop_pragmas = filter(!isequal("No pragma"), [sum_pragma_vectorize, sum_pragma_interleave]),
+);
+
 # ╔═╡ e6fac999-9f54-42f9-a1b7-3fd883b891ab
-emit_llvm(c_sum_code(sum_type, filter(!isequal("No pragma"), [sum_pragma_vectorize, sum_pragma_interleave])), cflags = [sum_opt; sum_flags]);
+emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags]);
 
 # ╔═╡ a7421d94-6966-4b71-b8c2-7553b209f146
-aside(md_c(c_sum_code(sum_type, "vectorize_width(8) interleave_count(1)")), v_offset = -420)
+aside(md_c(c_sum_code_for_llvm), v_offset = -480)
+
+# ╔═╡ 69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
+emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags], language = CppLanguage());
 
 # ╔═╡ Cell order:
 # ╟─49aca9a0-ed40-11ef-1cf9-635242dfa821
@@ -507,6 +549,7 @@ aside(md_c(c_sum_code(sum_type, "vectorize_width(8) interleave_count(1)")), v_of
 # ╟─e6fac999-9f54-42f9-a1b7-3fd883b891ab
 # ╟─a7421d94-6966-4b71-b8c2-7553b209f146
 # ╟─bc8bc245-6c10-4759-a85b-b407ef016c60
+# ╟─9cfd52a7-f5b9-424a-b1a4-b81f63e3b30c
 # ╟─41d1448e-72c9-431c-a614-c7922e35c883
 # ╟─69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
 # ╠═7ab127df-8afd-4ebe-8403-9ca3bcc2f8e3
@@ -516,6 +559,7 @@ aside(md_c(c_sum_code(sum_type, "vectorize_width(8) interleave_count(1)")), v_of
 # ╟─49ca9d35-cce8-45fd-8c2e-1dd92f056c93
 # ╟─8e3738ac-d742-4c60-ade8-f5565ea2d1bf
 # ╟─48d3e554-28f3-4ca3-a111-8a9904771426
+# ╟─8c23d4b7-9580-4563-9586-1e32358b9802
 # ╟─529ba439-40fe-4d93-88c5-797c0a9fc6ee
 # ╠═69c872e1-966a-4a7a-a90f-d13bc108b801
 # ╠═bfb3b635-85b2-4a1e-a16c-5106b6495d09
