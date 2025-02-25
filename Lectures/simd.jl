@@ -95,13 +95,19 @@ aside(tip(md"As accessing global variables is slow in Julia, it is important to 
 # ╔═╡ 9956af59-12e9-4eb6-bf63-03e2936a5912
 sum_float_options = hbox([
 	Div(vbox([
+		md"""OpenMP : $(@bind sum_float_pragma_openmp Select(["No pragma", "simd"]))""",
 		md"""$(@bind sum_float_pragma_fastmath Select(["No pragma", "float_control(precise, off)"]))""",
-		md"""$(@bind sum_float_pragma_vectorize Select(["No pragma", "vectorize(disable)", "vectorize(enable)", "vectorize_width(1)", "vectorize_width(2)", "vectorize_width(4)", "vectorize_width(8)", "vectorize_width(16)"]))""",
-		md"""$(@bind sum_float_pragma_interleave Select(["No pragma", "interleave(disable)", "interleave(enable)", "interleave_count(1)", "interleave_count(2)", "interleave_count(4)", "interleave_count(8)"]))"""]),
+		md"""Vectorize : $(@bind sum_float_pragma_vectorize Select(["No pragma", "vectorize(disable)", "vectorize(enable)", "vectorize_width(1)", "vectorize_width(2)", "vectorize_width(4)", "vectorize_width(8)", "vectorize_width(16)"]))""",
+		md"""Interleave : $(@bind sum_float_pragma_interleave Select(["No pragma", "interleave(disable)", "interleave(enable)", "interleave_count(1)", "interleave_count(2)", "interleave_count(4)", "interleave_count(8)"]))"""]),
 		; style = Dict("flex-grow" => "1")
 	),
-	md"""$(@bind sum_float_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))""",
-	md"""$(@bind sum_float_flags MultiCheckBox(["-ffast-math", "-msse3", "-mavx2", "-mavx512f"]))""",
+	vbox([
+		hbox([
+	    	md"""$(@bind sum_float_opt Select(["-O0", "-O1", "-O2", "-O3"], default = "-O0"))""",
+			md"""$(@bind sum_float_flags MultiCheckBox(["-ffast-math", "-fopenmp"]))""",
+		]),
+	    md"""$(@bind sum_float_m MultiCheckBox(["-msse3", "-mavx2", "-mavx512f"]))""",
+	])
 ]);
 
 # ╔═╡ 0a19c69e-d9f1-4630-a8b4-5718e4f1abfa
@@ -413,7 +419,7 @@ cpp_sum_code_for_llvm = cpp_sum_code(
 aside(md_code(cpp_sum_code_for_llvm, CppLanguage()), v_offset = -700)
 
 # ╔═╡ 174407b5-75be-4930-a476-7f2bfa35cdf0
-function c_sum_code(T; loop_pragmas = String[], pragmas = String[])
+function c_sum_code(T; loop_pragmas = String[], openmp_pragmas = String[], pragmas = String[])
 	code = """
 $T sum($T *vec, int length) {
     $T total = 0;
@@ -421,6 +427,11 @@ $T sum($T *vec, int length) {
 	for pragma in loop_pragmas
 		code *= """
 	#pragma clang loop $pragma
+"""
+	end
+	for pragma in openmp_pragmas
+		code *= """
+	#pragma omp $pragma
 """
 	end
 	code *= """
@@ -443,6 +454,7 @@ end;
 sum_float_code, sum_float_lib = compile_lib(c_sum_code("float",
 	pragmas = filter(!isequal("No pragma"), [sum_float_pragma_fastmath]),
 	loop_pragmas = filter(!isequal("No pragma"), [sum_float_pragma_vectorize, sum_float_pragma_interleave]),
+	openmp_pragmas = filter(!isequal("No pragma"), [sum_float_pragma_openmp]),
 ), lib = true, cflags = [sum_float_opt; sum_float_flags]);
 
 # ╔═╡ a38807e2-d901-4467-b35e-248da491abff

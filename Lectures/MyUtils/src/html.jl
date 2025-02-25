@@ -87,3 +87,7 @@ end
 function wooclap(link)
     return HTML("""<img alt="Wooclap Logo" src="https://www.wooclap.com/images/wooclap-logo.svg"> <a style="margin-left: 80px;" href="https://app.wooclap.com/$link"><tt>https://app.wooclap.com/JAPRXX</tt></a>""")
 end
+
+function definition(name, content)
+    return Markdown.MD(Markdown.Admonition("key-concept", "Def: $name", [content]))
+end
