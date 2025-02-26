@@ -25,7 +25,7 @@ md_code(code, l::Language) = md_code(code, source_extension(l))
 
 md_c(code) = md_code(code, "c")
 
-function compile(code; lib, emit_llvm = false, cflags = ["-O3"], language::Language = CLanguage())
+function compile(code; lib, emit_llvm = false, cflags = ["-O3"], language::Language = CLanguage(), verbose = 0)
     path = mktempdir()
     main_file = joinpath(path, "main.c")
     bin_file = joinpath(path, ifelse(emit_llvm, "main.llvm", ifelse(lib, "lib.so", "bin")))
@@ -49,7 +49,11 @@ function compile(code; lib, emit_llvm = false, cflags = ["-O3"], language::Langu
     push!(args, bin_file)
     try
         Clang_jll.clang() do exe
-            run(Cmd([exe; args]))
+            cmd = Cmd([exe; args])
+            if verbose >= 1
+                @info("Compiling : $cmd")
+            end
+            run(cmd)
         end
     catch err
         if err isa ProcessFailedException
