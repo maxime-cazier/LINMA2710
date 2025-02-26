@@ -29,6 +29,150 @@ using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, Benchma
 header("LINMA2710 - Scientific Computing
 Shared-Memory Multiprocessing", "P.-A. Absil and B. Legat")
 
+# ╔═╡ 3887824b-7c7f-4c24-bf6d-7a55ed7adc89
+section("Memory layout")
+
+# ╔═╡ 37d9b5f0-48b6-4ff3-873d-592230687995
+frametitle("Hierarchy")
+
+# ╔═╡ 138caa9b-1d53-4c01-a3b9-c1a097413736
+image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/hierarchy.jpg")
+
+# ╔═╡ 81465bf1-8e54-461f-892c-2769bf94fdfe
+md"""Latency of `n` bytes of data is given by
+```math
+\alpha + \beta n
+```
+where ``\alpha`` is the start up time and ``\beta`` is the inverse of the bandwidth.
+"""
+
+# ╔═╡ e867d9be-5668-4756-af7f-c23c48962f08
+aside(md"""[Source](image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/))""", v_offset = -300)
+
+# ╔═╡ a32ba8f2-a9c9-41c6-99b4-577f0823bd9f
+frametitle("Cache lines and prefetch")
+
+# ╔═╡ 02be0de6-70dc-4cf4-b630-b541a304eecd
+image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/prefetch.jpeg")
+
+# ╔═╡ 658ca396-2d73-4c93-8138-33c101deee7b
+md"""
+* Accessing value not in the cache → *cache miss*
+* This value is then loaded along with a whole cache line (e.g., 64 or 128 contiguous bytes)
+* Following cache lines may also be anticipated and prefetched
+
+This shows the importance of *data locality*. An algorithm performs better if it accesses data close in memory and in a predictable pattern.
+"""
+
+# ╔═╡ caec43a3-9bac-4f73-a8e5-288cfa9e1606
+aside(md"""[Source](image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/))""", v_offset = -280)
+
+# ╔═╡ f26f0a70-c16b-491d-b4cf-45ca146727c2
+frametitle("Illustration with matrices")
+
+# ╔═╡ 81da94b8-1bbf-4773-ba53-d229452cef75
+mat = rand(Cfloat, 2^8, 2^8)
+
+# ╔═╡ 98a65469-573e-43b5-9043-f3d0f3198bcc
+aside(
+	Foldable(
+		md"What is the performance issue of this code ?",
+		md"The way matrices are represented by Julia in memory is by concatenating all columns as single continuous memory. This means that it is more efficient to access the matrix column by column !
+		Switch to column-wise sum $(@bind column_wise CheckBox(default = false))",
+	), v_offset = -275
+)
+
+# ╔═╡ ccfd4488-a32a-4b35-a922-2e830f91ca08
+function c_sum_matrix(T; column_wise)
+	code = """
+#include <stdio.h>
+
+$T sum($T *mat, int n, int m) {
+  $T total = 0;
+"""
+	idx = column_wise ? 'j' : 'i'
+	len = column_wise ? 'm' : 'n'
+	code *= """
+  for (int $idx = 0; $idx < $len; $idx++) {
+"""
+	idx = column_wise ? 'i' : 'j'
+	len = column_wise ? 'n' : 'm'
+	code *= """
+	for (int $idx = 0; $idx < $len; $idx++) {
+"""
+	code *= """
+	  total += mat[i + j * n];
+	}
+  }
+  return total;
+}
+"""
+	return code
+end;
+
+# ╔═╡ fa017c45-6410-4c14-b9a2-ede33759d396
+sum_matrix_code, sum_matrix_lib = compile_lib(c_sum_matrix("float"; column_wise), lib = true, cflags = ["-O2", "-mavx2", "-ffast-math"]);
+
+# ╔═╡ 19943be2-1633-48c9-8cb3-2a73fb96e4ae
+c_sum(x::Matrix{Cfloat}) = ccall(("sum", sum_matrix_lib), Cfloat, (Ptr{Cfloat}, Cint, Cint), x, size(x, 1), size(x, 2));
+
+# ╔═╡ 5d7cd5e3-5fc2-4835-bea1-c4897467365b
+aside(sum_matrix_code, v_offset = -470)
+
+# ╔═╡ c0bda86a-136b-45ca-84ba-7365c367d265
+frametitle("Arithmetic intensity")
+
+# ╔═╡ 11b1c6a8-3918-4dda-9028-17af2d6c44c4
+md"""
+Consider a program requiring `m` load / store operations with memory for `o` arithmetic operations.
+
+* The *arithmetic intensity* is the ratio ``a = o / m``.
+* The arithmetic time is ``t_\text{arith} = o / \text{frequency}``
+* The data transfer time is ``t_\text{mem} = m / \text{bandwidth} = o / (a \cdot \text{bandwidth})``
+
+As arithmetic operations and data transfer are done in parallel, the time per iteration is
+```math
+\min(t_\text{arith} / o, t_\text{mem} / o) = 1/\max(\text{frequency}, a \cdot \text{bandwidth})
+```
+So the number of operations per second is ``\max(\text{frequency}, a \cdot \text{bandwidth})``.
+
+This piecewise linear function in ``a`` gives the *roofline model*.
+"""
+
+# ╔═╡ 6e8865f5-84ad-4083-bb19-57ad1b561fab
+frametitle("The roofline model")
+
+# ╔═╡ d8238145-9787-40f0-a151-1ef73d8c97ee
+hbox([
+	image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/roofline1.jpeg", :height => "260px"),
+	image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/roofline3.jpeg", :height => "260px"),
+])
+
+# ╔═╡ d221bad8-98fb-4c1d-9c9c-66e1b697f023
+md"""
+* *compute-bound* : For large arithmetic intensity (Alg2 in above picture), performance determined by processor characteristics
+* *bandwidth-bound* : For low arithmetic intensity (Alg1 in above picture), performance determined by memory characteristics
+* Bandwidth line may be be lowered by inefficient memory access (e.g., no locality)
+* Peak performance line may be lowered by inefficient use of CPU (e.g., not using SIMD)
+"""
+
+# ╔═╡ ea9ff1a9-615d-4e18-a4c8-9aad20447156
+aside(md"[Source](https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing)", v_offset = -360)
+
+# ╔═╡ 9e78f2a1-0811-4f61-957d-ad4718430f7f
+frametitle("Cache hierarchy for a multi-core CPU")
+
+# ╔═╡ 6f70144e-5240-41ef-a719-8a8942e18fee
+image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/cache-hierarchy.jpg")
+
+# ╔═╡ e90fd21d-d046-4852-823c-5d7210068923
+md"""
+*Cache coherence* : Update L1 cache when the corresponding memory is modified by another core.
+"""
+
+# ╔═╡ c6ea9bc5-bb15-4e25-a854-de3417d736a6
+aside(md"""[Image source](image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/))""", v_offset = -250)
+
 # ╔═╡ e7445ed8-cbf7-475d-bd67-3df8d9015de2
 section("Parallel sum")
 
@@ -139,6 +283,9 @@ sum_md_code
 
 # ╔═╡ 253bd533-99b7-4012-b3f4-e86a2466a919
 c_sum(x::Vector{Cfloat}; num_threads = 1, verbose = 0) = ccall(("sum", sum_lib), Cfloat, (Ptr{Cfloat}, Cint, Cint, Cint), x, length(x), num_threads, verbose);
+
+# ╔═╡ 4ae73a28-d945-4c1b-a281-aa4931bf0bfd
+@btime c_sum($mat)
 
 # ╔═╡ 62297efe-3a15-4dab-ac17-b823ab3e7933
 @btime c_sum($vec, num_threads = 1, verbose = 0)
@@ -304,6 +451,33 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 
 # ╔═╡ Cell order:
 # ╟─d537aa7e-f38a-11ef-3bef-b7291789fea9
+# ╟─3887824b-7c7f-4c24-bf6d-7a55ed7adc89
+# ╟─37d9b5f0-48b6-4ff3-873d-592230687995
+# ╟─138caa9b-1d53-4c01-a3b9-c1a097413736
+# ╟─81465bf1-8e54-461f-892c-2769bf94fdfe
+# ╟─e867d9be-5668-4756-af7f-c23c48962f08
+# ╟─a32ba8f2-a9c9-41c6-99b4-577f0823bd9f
+# ╟─02be0de6-70dc-4cf4-b630-b541a304eecd
+# ╟─658ca396-2d73-4c93-8138-33c101deee7b
+# ╟─caec43a3-9bac-4f73-a8e5-288cfa9e1606
+# ╟─f26f0a70-c16b-491d-b4cf-45ca146727c2
+# ╠═4ae73a28-d945-4c1b-a281-aa4931bf0bfd
+# ╠═81da94b8-1bbf-4773-ba53-d229452cef75
+# ╠═19943be2-1633-48c9-8cb3-2a73fb96e4ae
+# ╟─5d7cd5e3-5fc2-4835-bea1-c4897467365b
+# ╟─98a65469-573e-43b5-9043-f3d0f3198bcc
+# ╟─fa017c45-6410-4c14-b9a2-ede33759d396
+# ╟─ccfd4488-a32a-4b35-a922-2e830f91ca08
+# ╟─c0bda86a-136b-45ca-84ba-7365c367d265
+# ╟─11b1c6a8-3918-4dda-9028-17af2d6c44c4
+# ╟─6e8865f5-84ad-4083-bb19-57ad1b561fab
+# ╟─d8238145-9787-40f0-a151-1ef73d8c97ee
+# ╟─d221bad8-98fb-4c1d-9c9c-66e1b697f023
+# ╟─ea9ff1a9-615d-4e18-a4c8-9aad20447156
+# ╟─9e78f2a1-0811-4f61-957d-ad4718430f7f
+# ╟─6f70144e-5240-41ef-a719-8a8942e18fee
+# ╟─e90fd21d-d046-4852-823c-5d7210068923
+# ╟─c6ea9bc5-bb15-4e25-a854-de3417d736a6
 # ╟─e7445ed8-cbf7-475d-bd67-3df8d9015de2
 # ╟─4b9cfb4d-2355-42e3-be2f-35e2638e984b
 # ╠═62297efe-3a15-4dab-ac17-b823ab3e7933

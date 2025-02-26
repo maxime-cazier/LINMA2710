@@ -18,9 +18,13 @@ function boxed(str::AbstractString, p)
     Luxor.origin()
 end
 
-function placeimage_from_url(url, pos; scale = 1.0, centered = true, name = split(url, '/')[end])
+function image_from_url(url, html_attributes...; name = split(url, '/')[end], kws...)
     path = joinpath("cache", name)
-    r = PlutoTeachingTools.RobustLocalResource(url, path)
+    return PlutoTeachingTools.RobustLocalResource(url, path, html_attributes...)
+end
+
+function placeimage_from_url(url, pos; scale = 1.0, centered = true, kws...)
+    r = image_from_url(url; kws...)
     if r.mime isa MIME"image/svg+xml"
         img = Luxor.readsvg(path)
     else
