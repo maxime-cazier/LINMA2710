@@ -43,6 +43,12 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-pluto_state_cache-v2-${{ hashFiles('**/Project.toml', '**/Manifest.toml', '.github/workflows/*' ) }}
 
+            - name: Install openmp
+              uses: awalsh128/cache-apt-pkgs-action@latest
+              with:
+                packages: libomp-dev
+                version: 1.0
+
             - name: Instantiate
               run: |
                 julia -e 'using Pkg

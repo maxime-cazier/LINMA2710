@@ -16,7 +16,7 @@ First, download the `.jl` file in this repository (e.g., by [downloading a zip](
 
 Now, install [Julia](https://julialang.org/) (I recommend doing this using [juliaup](https://julialang.org/downloads/#juliaup_-_julia_version_manager)).
 Once this is completed, [install and then run Pluto](https://plutojl.org/#install).
-You will need to install the [LLVM OpenMP Runtime Library](https://openmp.llvm.org/) for the `-fopenmp` flag to work (or you will get `"-lomp": No such file or directory` when to use the checkbox enabling `-fopenmp`). Do for instance `# pacman -S openmp` on ArchLinux.
+You will need to install the [LLVM OpenMP Runtime Library](https://openmp.llvm.org/) for the `-fopenmp` flag to work (or you will get `"-lomp": No such file or directory` when to use the checkbox enabling `-fopenmp`). Do for instance `# apt-get install libomp-dev` on Ubuntu or `# pacman -S openmp` on ArchLinux.
 
 ## 🏆 Gain bonus points by fixing typos
 
