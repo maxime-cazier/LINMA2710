@@ -46,9 +46,6 @@ md"""Latency of `n` bytes of data is given by
 where ``\alpha`` is the start up time and ``\beta`` is the inverse of the bandwidth.
 """
 
-# ╔═╡ e867d9be-5668-4756-af7f-c23c48962f08
-aside(md"""[Source](image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/))""", v_offset = -300)
-
 # ╔═╡ a32ba8f2-a9c9-41c6-99b4-577f0823bd9f
 frametitle("Cache lines and prefetch")
 
@@ -63,9 +60,6 @@ md"""
 
 This shows the importance of *data locality*. An algorithm performs better if it accesses data close in memory and in a predictable pattern.
 """
-
-# ╔═╡ caec43a3-9bac-4f73-a8e5-288cfa9e1606
-aside(md"""[Source](image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/))""", v_offset = -280)
 
 # ╔═╡ f26f0a70-c16b-491d-b4cf-45ca146727c2
 frametitle("Illustration with matrices")
@@ -156,9 +150,6 @@ md"""
 * Peak performance line may be lowered by inefficient use of CPU (e.g., not using SIMD)
 """
 
-# ╔═╡ ea9ff1a9-615d-4e18-a4c8-9aad20447156
-aside(md"[Source](https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing)", v_offset = -360)
-
 # ╔═╡ 9e78f2a1-0811-4f61-957d-ad4718430f7f
 frametitle("Cache hierarchy for a multi-core CPU")
 
@@ -169,9 +160,6 @@ image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcom
 md"""
 *Cache coherence* : Update L1 cache when the corresponding memory is modified by another core.
 """
-
-# ╔═╡ c6ea9bc5-bb15-4e25-a854-de3417d736a6
-aside(md"""[Image source](image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/))""", v_offset = -250)
 
 # ╔═╡ e7445ed8-cbf7-475d-bd67-3df8d9015de2
 section("Parallel sum")
@@ -446,6 +434,28 @@ The algorithm cannot use more than ``n`` processes so if ``p \ge n``, we have
 Therefore, ``\lim_{p \to \infty} S_p = \frac{1}{\log_2(n)}`` hence ``F_s = \log_2(n)``.
 """)
 
+# ╔═╡ dadaf83a-ac35-4a04-827a-1e4e69177e04
+biblio = load_biblio!()
+
+# ╔═╡ e867d9be-5668-4756-af7f-c23c48962f08
+aside(bibcite(biblio, "eijkhout2010Introduction", "Figure 1.5"), v_offset = -300)
+
+# ╔═╡ caec43a3-9bac-4f73-a8e5-288cfa9e1606
+aside(bibcite(biblio, "eijkhout2010Introduction", "Figure 1.11"), v_offset = -280)
+
+# ╔═╡ de0bbef2-1240-4f85-889f-0af509d6cfff
+	aside(tip(md"""
+See examples in $(bibcite(biblio, "eijkhout2010Introduction", "Section 1.7.1")).
+
+$(bibrefs(biblio, "eijkhout2010Introduction"))
+"""), v_offset=-300)
+
+# ╔═╡ ea9ff1a9-615d-4e18-a4c8-9aad20447156
+aside(bibcite(biblio, "eijkhout2010Introduction", "Figure 1.16"), v_offset = -360)
+
+# ╔═╡ c6ea9bc5-bb15-4e25-a854-de3417d736a6
+aside(bibcite(biblio, "eijkhout2010Introduction", "Figure 1.13"), v_offset = -250)
+
 # ╔═╡ 8b98b33e-f65d-4cbd-9e80-20a7132cd349
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 
@@ -470,6 +480,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─ccfd4488-a32a-4b35-a922-2e830f91ca08
 # ╟─c0bda86a-136b-45ca-84ba-7365c367d265
 # ╟─11b1c6a8-3918-4dda-9028-17af2d6c44c4
+# ╟─de0bbef2-1240-4f85-889f-0af509d6cfff
 # ╟─6e8865f5-84ad-4083-bb19-57ad1b561fab
 # ╟─d8238145-9787-40f0-a151-1ef73d8c97ee
 # ╟─d221bad8-98fb-4c1d-9c9c-66e1b697f023
@@ -512,4 +523,5 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─78503ab7-f0a3-4231-8b4e-5fd30715ec27
 # ╟─58758402-50e7-4d7b-b4aa-4b0dcb137869
 # ╟─34519b36-0e60-4c2c-92d6-3b8ed71e6ad1
+# ╠═dadaf83a-ac35-4a04-827a-1e4e69177e04
 # ╠═8b98b33e-f65d-4cbd-9e80-20a7132cd349
