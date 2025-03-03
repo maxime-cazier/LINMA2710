@@ -57,7 +57,7 @@ function compile(code; lib, emit_llvm = false, cflags = ["-O3"], language::Langu
         end
     catch err
         if err isa ProcessFailedException
-            return md_c(code)
+            return
         else
             rethrow(err)
         end
@@ -76,11 +76,14 @@ function compile_lib(code; kws...)
 end
 
 function compile_and_run(code; args = String[], kws...)
-    cmd = Cmd([compile(code; lib = false, kws...); args])
-    if !isempty(args)
-        println("\$ $(string(cmd)[2:end-1])") # `2:end-1` to remove the backsticks
+    bin_file = compile(code; lib = false, kws...)
+    if !isnothing(bin_file)
+        cmd = Cmd([bin_file; args])
+        if !isempty(args)
+            println("\$ $(string(cmd)[2:end-1])") # `2:end-1` to remove the backsticks
+        end
+        run(cmd)
     end
-    run(cmd)
     return md_c(code)
 end
 
