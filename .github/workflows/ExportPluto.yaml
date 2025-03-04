@@ -48,7 +48,6 @@ jobs:
                 sudo apt install -y libomp-dev
                 whereis omp.h
                 ls /usr/lib/llvm-18/lib/clang/18/include/omp.h
-                ls /usr/include/omp.h
                 mkdir tmp
                 cd tmp
                 apt download libomp-18-dev
