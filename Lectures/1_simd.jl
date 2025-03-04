@@ -20,7 +20,7 @@ end
 import Pkg
 
 # ╔═╡ dfc87f8b-1b29-4f3a-b674-6ddf16b9d1ce
-Pkg.activate(".")
+Pkg.activate(@__DIR__)
 
 # ╔═╡ d3c2d2b7-8f23-478b-b36b-c92552a6cf01
 using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, BenchmarkTools, PlutoTeachingTools
@@ -85,9 +85,6 @@ frametitle("Let's make a small benchmark")
 
 # ╔═╡ 8b7c3a6e-bd6a-425e-8040-340fdb6b0dd0
 vec_float = rand(Float32, 2^16)
-
-# ╔═╡ 691d01a2-12fc-4782-a9f9-a732746285c6
-@btime c_sum($vec_float)
 
 # ╔═╡ 0b4c686c-912b-42ff-a7ef-970030808a74
 @btime julia_sum($vec_float)
@@ -262,9 +259,6 @@ function f(x1, x2, x3, x4, y1, y2, y3, y4)
 	return z1, z2, z3, z4
 end
 
-# ╔═╡ 6869a1d9-b662-4c66-9adb-fc72932eb6c5
-@code_llvm debuginfo=:none f(1, 2, 3, 4, 5, 6, 7, 8)
-
 # ╔═╡ 1fa393f5-ccea-4199-bf23-16fc1d6a1969
 aside(tip(md"If we see `add i64`, it means that each `Int64` is added independently"), v_offset = -200)
 
@@ -318,9 +312,6 @@ frametitle("LLVM Loop Vectorizer for a C array")
 # ╔═╡ 41d1448e-72c9-431c-a614-c7922e35c883
 frametitle("LLVM Loop Vectorizer for a C++ vector")
 
-# ╔═╡ 7ab127df-8afd-4ebe-8403-9ca3bcc2f8e3
-@btime cpp_sum($vec_float)
-
 # ╔═╡ 49ca9d35-cce8-45fd-8c2e-1dd92f056c93
 aside(tip(md"Easily call C++ code from Julia or Python by adding a C interface like the `c_sum` in this example."), v_offset = -170)
 
@@ -366,6 +357,9 @@ frametitle("LLVM Superword-Level Parallelism (SLP) Vectorizer")
 # ╔═╡ 69c872e1-966a-4a7a-a90f-d13bc108b801
 f(a, b) = (a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4])
 
+# ╔═╡ 6869a1d9-b662-4c66-9adb-fc72932eb6c5
+@code_llvm debuginfo=:none f(1, 2, 3, 4, 5, 6, 7, 8)
+
 # ╔═╡ bfb3b635-85b2-4a1e-a16c-5106b6495d09
 @code_llvm debuginfo=:none f((1, 2, 3, 4), (5, 6, 7, 8))
 
@@ -410,6 +404,9 @@ cpp_sum_float_code, cpp_sum_float_lib = compile_lib(cpp_sum_code("float"), lib =
 
 # ╔═╡ 57005169-054b-4912-b0ba-742a56ee3f5f
 cpp_sum(x::Vector{Cfloat}) = ccall(("c_sum", cpp_sum_float_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
+
+# ╔═╡ 7ab127df-8afd-4ebe-8403-9ca3bcc2f8e3
+@btime cpp_sum($vec_float)
 
 # ╔═╡ 8c23d4b7-9580-4563-9586-1e32358b9802
 cpp_sum_code_for_llvm = cpp_sum_code(
@@ -466,6 +463,9 @@ sum_float_code
 # ╔═╡ a841d535-c32b-4bb6-8132-600253038508
 c_sum(x::Vector{Cfloat}) = ccall(("sum", sum_float_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
 
+# ╔═╡ 691d01a2-12fc-4782-a9f9-a732746285c6
+@btime c_sum($vec_float)
+
 # ╔═╡ c80ad92b-853d-4bc1-ad7c-0dd1ad48d1c4
 c_sum(test_kahan[[1, 5]])
 
@@ -490,6 +490,9 @@ aside(md_c(c_sum_code_for_llvm), v_offset = -480)
 
 # ╔═╡ 69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
 emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags], language = CppLanguage());
+
+# ╔═╡ eb1a0465-aafb-4f78-8f01-5c8f9672a21a
+Pkg.instantiate()
 
 # ╔═╡ Cell order:
 # ╟─49aca9a0-ed40-11ef-1cf9-635242dfa821
@@ -584,4 +587,5 @@ emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags], language = CppLang
 # ╟─174407b5-75be-4930-a476-7f2bfa35cdf0
 # ╟─406dcb0d-b68d-40ec-8844-c5445cff88f6
 # ╟─dfc87f8b-1b29-4f3a-b674-6ddf16b9d1ce
+# ╟─eb1a0465-aafb-4f78-8f01-5c8f9672a21a
 # ╟─d3c2d2b7-8f23-478b-b36b-c92552a6cf01

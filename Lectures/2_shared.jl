@@ -20,7 +20,7 @@ end
 import Pkg
 
 # ╔═╡ 58758402-50e7-4d7b-b4aa-4b0dcb137869
-Pkg.activate(".")
+Pkg.activate(@__DIR__)
 
 # ╔═╡ 34519b36-0e60-4c2c-92d6-3b8ed71e6ad1
 using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, BenchmarkTools, PlutoTeachingTools, Markdown
@@ -105,7 +105,7 @@ $T sum($T *mat, int n, int m) {
 end;
 
 # ╔═╡ fa017c45-6410-4c14-b9a2-ede33759d396
-sum_matrix_code, sum_matrix_lib = compile_lib(c_sum_matrix("float"; column_wise), lib = true, cflags = ["-O2", "-mavx2", "-ffast-math"]);
+sum_matrix_code, sum_matrix_lib = compile_lib(c_sum_matrix("float"; column_wise), lib = true, cflags = ["-O3", "-mavx2", "-ffast-math"]);
 
 # ╔═╡ 19943be2-1633-48c9-8cb3-2a73fb96e4ae
 c_sum(x::Matrix{Cfloat}) = ccall(("sum", sum_matrix_lib), Cfloat, (Ptr{Cfloat}, Cint, Cint), x, size(x, 1), size(x, 2));
@@ -264,7 +264,7 @@ $T sum($T *vec, int length, int num_threads, int verbose) {
 end;
 
 # ╔═╡ ebe1cd42-ba25-4538-acbe-353e0e47009e
-sum_md_code, sum_lib = compile_lib(c_sum_code("float"; local_results, no_false_sharing, simd = true), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"], language = CppLanguage());
+sum_md_code, sum_lib = compile_lib(c_sum_code("float"; local_results, no_false_sharing, simd = true), lib = true, cflags = ["-O3", "-mavx2", "-I/usr/lib/llvm-18/lib/clang/18/include", "-fopenmp"], language = CppLanguage());
 
 # ╔═╡ 4b9cfb4d-2355-42e3-be2f-35e2638e984b
 sum_md_code
@@ -523,5 +523,5 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─78503ab7-f0a3-4231-8b4e-5fd30715ec27
 # ╟─58758402-50e7-4d7b-b4aa-4b0dcb137869
 # ╟─34519b36-0e60-4c2c-92d6-3b8ed71e6ad1
-# ╠═dadaf83a-ac35-4a04-827a-1e4e69177e04
+# ╟─dadaf83a-ac35-4a04-827a-1e4e69177e04
 # ╠═8b98b33e-f65d-4cbd-9e80-20a7132cd349
