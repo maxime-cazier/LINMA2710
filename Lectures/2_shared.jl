@@ -202,6 +202,7 @@ end
 function c_sum_code(T; local_results::Bool, no_false_sharing::Bool, simd::Bool)
 	code = """
 #include <vector>
+#include <stdint.h>
 #include <omp.h>
 #include <stdio.h>
 
@@ -437,6 +438,9 @@ Therefore, ``\lim_{p \to \infty} S_p = \frac{1}{\log_2(n)}`` hence ``F_s = \log_
 # ╔═╡ dadaf83a-ac35-4a04-827a-1e4e69177e04
 biblio = load_biblio!()
 
+# ╔═╡ 8a51b9c5-8888-4578-ae40-cf906ec9b5fa
+bibrefs(biblio, "eijkhout2010Introduction")
+
 # ╔═╡ e867d9be-5668-4756-af7f-c23c48962f08
 aside(bibcite(biblio, "eijkhout2010Introduction", "Figure 1.5"), v_offset = -300)
 
@@ -446,8 +450,6 @@ aside(bibcite(biblio, "eijkhout2010Introduction", "Figure 1.11"), v_offset = -28
 # ╔═╡ de0bbef2-1240-4f85-889f-0af509d6cfff
 	aside(tip(md"""
 See examples in $(bibcite(biblio, "eijkhout2010Introduction", "Section 1.7.1")).
-
-$(bibrefs(biblio, "eijkhout2010Introduction"))
 """), v_offset=-300)
 
 # ╔═╡ ea9ff1a9-615d-4e18-a4c8-9aad20447156
@@ -461,6 +463,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 
 # ╔═╡ Cell order:
 # ╟─d537aa7e-f38a-11ef-3bef-b7291789fea9
+# ╟─8a51b9c5-8888-4578-ae40-cf906ec9b5fa
 # ╟─3887824b-7c7f-4c24-bf6d-7a55ed7adc89
 # ╟─37d9b5f0-48b6-4ff3-873d-592230687995
 # ╟─138caa9b-1d53-4c01-a3b9-c1a097413736
