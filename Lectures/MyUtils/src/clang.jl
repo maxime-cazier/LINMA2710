@@ -82,13 +82,14 @@ function compile(
                 @info("Compiling : $cmd")
             end
             run(cmd)
-        end
-        Clang_jll.clang() do exe
-            cmd = Cmd([exe; args])
-            if verbose >= 1
-                @info("Compiling : $cmd")
+        else
+            Clang_jll.clang() do exe
+                cmd = Cmd([exe; args])
+                if verbose >= 1
+                    @info("Compiling : $cmd")
+                end
+                run(cmd)
             end
-            run(cmd)
         end
     catch err
         if err isa ProcessFailedException
@@ -110,12 +111,19 @@ function compile_lib(code::Code; kws...)
     return code, compile(code; lib = true, kws...)
 end
 
-function compile_and_run(code::Code; args = String[], mpi::Bool = false, num_processes = nothing, kws...)
-    bin_file = compile(code; lib = false, mpi, num_processes, kws...)
+function compile_and_run(code::Code; args = String[], mpi::Bool = false, num_processes = nothing, show_run_command = !isempty(args) || verbose >= 1, kws...)
+    bin_file = compile(code; lib = false, mpi, kws...)
     if !isnothing(bin_file)
-        cmd = Cmd([bin_file; args])
-        if !isempty(args)
-            println("\$ $(string(cmd)[2:end-1])") # `2:end-1` to remove the backsticks
+        cmd_vec = [bin_file; args]
+        if mpi
+            if !isnothing(num_processes)
+                cmd_vec = [["-n", string(num_processes)]; cmd_vec]
+            end
+            cmd_vec = ["mpiexec"; cmd_vec]
+        end
+        cmd = Cmd(cmd_vec)
+        if show_run_command
+            @info("Running : $cmd") # `2:end-1` to remove the backsticks
         end
         run(cmd)
     end
@@ -149,7 +157,7 @@ function codesnippet(code::Code)
         return code
     end
     j = findlast(line -> contains(line, "codesnippet"), lines)
-    return typeof(code)(join(code[i+1:j-1], '\n'))
+    return typeof(code)(join(lines[i+1:j-1], '\n'))
 end
 
 struct Example
