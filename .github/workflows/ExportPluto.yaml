@@ -46,6 +46,7 @@ jobs:
             - name: Install LLVM OpenMP runtime
               shell: bash {0}
               run: |
+                sudo apt install -y hwloc # For lstopo
                 sudo apt install -y libomp-dev
                 whereis omp.h
                 ls /usr/lib/llvm-18/lib/clang/18/include/omp.h

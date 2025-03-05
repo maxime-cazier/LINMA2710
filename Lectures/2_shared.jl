@@ -273,7 +273,7 @@ $T sum($T *vec, int length, int num_threads, int verbose) {
 end;
 
 # ╔═╡ ebe1cd42-ba25-4538-acbe-353e0e47009e
-sum_md_code, sum_lib = compile_lib(c_sum_code("float"; local_results, no_false_sharing, simd = true), lib = true, cflags = ["-O3", "-mavx2", "-I/usr/lib/llvm-18/lib/clang/18/include", "-fopenmp"]);
+sum_md_code, sum_lib = compile_lib(c_sum_code("float"; local_results, no_false_sharing, simd = true), lib = true, cflags = ["-O3", "-mavx2", "-I/usr/lib/llvm-18/lib/clang/18/include", "-fopenmp"], verbose = 1);
 
 # ╔═╡ 4b9cfb4d-2355-42e3-be2f-35e2638e984b
 sum_md_code
@@ -318,7 +318,7 @@ many_vec = rand(Cfloat, 2^many_log_size)
 @btime c_sum($many_vec)
 
 # ╔═╡ 8e337fad-abcf-4ad3-bf75-ab3980f36baa
-many_sum_md_code, many_sum_lib = compile_lib(Example("openmp_sum.cpp"), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"]);
+many_sum_md_code, many_sum_lib = compile_lib(Example("openmp_sum.cpp"), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"], verbose = 1);
 
 # ╔═╡ 258817e3-8495-4136-8cb9-00a4475245b2
 many_sum_md_code
