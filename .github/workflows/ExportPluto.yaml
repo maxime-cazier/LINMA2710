@@ -49,16 +49,6 @@ jobs:
                 sudo apt install -y libomp-dev
                 whereis omp.h
                 ls /usr/lib/llvm-18/lib/clang/18/include/omp.h
-                mkdir tmp
-                cd tmp
-                apt download libomp-18-dev
-                dpkg -c *
-                mkdir tmp
-                cd tmp
-                apt download libomp-dev
-                dpkg -c *
-                whereis omp.h
-                locate omp.h
                 cd examples
                 clang++ openmp_sum.cpp -fPIC -shared -fopenmp
                 clang++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp
@@ -68,6 +58,14 @@ jobs:
                 clang++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp -I/usr/lib/llvm-18/lib/clang/18/include
                 clang -x c++ openmp_sum.cpp -fPIC -shared -fopenmp -I/usr/lib/llvm-18/lib/clang/18/include
                 clang -x c++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp -I/usr/lib/llvm-18/lib/clang/18/include
+                mkdir tmp
+                cd tmp
+                apt download libomp-18-dev
+                dpkg -c *
+                mkdir tmp
+                cd tmp
+                apt download libomp-dev
+                dpkg -c *
 
             - name: Instantiate
               run: |

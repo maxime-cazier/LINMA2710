@@ -32,6 +32,14 @@ Shared-Memory Multiprocessing", "P.-A. Absil and B. Legat")
 # ╔═╡ 3887824b-7c7f-4c24-bf6d-7a55ed7adc89
 section("Memory layout")
 
+# ╔═╡ 315d63ce-e8dc-4c60-b3ac-fe0eb47db04c
+begin
+	dir = mktempdir()
+	file = joinpath(dir, "topo.png")
+	run(`lstopo $file`)
+	img(file)
+end
+
 # ╔═╡ 37d9b5f0-48b6-4ff3-873d-592230687995
 frametitle("Hierarchy")
 
@@ -418,6 +426,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─d537aa7e-f38a-11ef-3bef-b7291789fea9
 # ╟─8a51b9c5-8888-4578-ae40-cf906ec9b5fa
 # ╟─3887824b-7c7f-4c24-bf6d-7a55ed7adc89
+# ╟─315d63ce-e8dc-4c60-b3ac-fe0eb47db04c
 # ╟─37d9b5f0-48b6-4ff3-873d-592230687995
 # ╟─138caa9b-1d53-4c01-a3b9-c1a097413736
 # ╟─81465bf1-8e54-461f-892c-2769bf94fdfe
@@ -466,7 +475,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╠═96bffd66-24fc-46f7-b211-57e7d27bc316
 # ╠═6657e4dd-f5c2-47c4-b0d6-a2a56aac7b96
 # ╟─6c021710-5828-4ac0-8619-ce690ba89d5f
-# ╠═8e337fad-abcf-4ad3-bf75-ab3980f36baa
+# ╟─8e337fad-abcf-4ad3-bf75-ab3980f36baa
 # ╟─f95dd40b-8c56-4e10-abbc-3dbb58148e1f
 # ╟─2a1f3d29-4d6b-4634-86f3-4ecd4a7821a2
 # ╟─b2b3beda-c8bf-4616-b1bd-bdd907d11636
