@@ -309,55 +309,8 @@ many_vec = rand(Cfloat, 2^many_log_size)
 # ╔═╡ a7118fbb-66d6-44a1-a6ae-839f0e42a3ec
 @btime c_sum($many_vec)
 
-# ╔═╡ 050a67f8-7f02-4ac9-8ac4-20327d46c5e8
-function many_sum_code(T)
-	code = """
-#include <omp.h>
-#include <stdio.h>
-
-extern "C" {
-void sum_to($T *vec, int length, $T *local_results, int num_threads, int verbose) {
-  omp_set_dynamic(0); // Force the value `num_threads`
-  omp_set_num_threads(num_threads);
-  #pragma omp parallel
-  {
-    int thread_num = omp_get_thread_num();
-	int stride = length / num_threads;
-    int last = stride * (thread_num + 1);
-    if (thread_num + 1 == num_threads)
-      last = length;
-	if (verbose >= 1)
-      fprintf(stderr, "thread id : %d / %d %d:%d\\n", thread_num, omp_get_num_threads(), stride * thread_num, last - 1);
-	$T no_false_sharing = 0;
-    #pragma omp simd
-    for (int i = stride * thread_num; i < last; i++)
-      no_false_sharing += vec[i];
-	local_results[thread_num] = no_false_sharing;
-  }
-}
-
-$T sum($T *vec, int length, int num_threads, int factor, int verbose) {
-  $T* buffers[2] = {new $T[num_threads], new $T[num_threads / factor]};
-  sum_to(vec, length, buffers[0], num_threads, verbose);
-  int prev = num_threads, cur;
-  int buffer_idx = 0;
-  for (cur = num_threads / factor; cur > 0; cur /= factor) {
-	sum_to(buffers[buffer_idx % 2], prev, buffers[(buffer_idx + 1) % 2], cur, verbose);
-	prev = cur;
-	buffer_idx += 1;
-  }
-  if (prev == 1)
-	return buffers[buffer_idx % 2][0];
-  sum_to(buffers[buffer_idx % 2], prev, buffers[(buffer_idx + 1) % 2], 1, verbose);
-  return buffers[(buffer_idx + 1) % 2][0];
-}
-}
-"""
-	return CppCode(code)
-end;
-
 # ╔═╡ 8e337fad-abcf-4ad3-bf75-ab3980f36baa
-many_sum_md_code, many_sum_lib = compile_lib(many_sum_code("float"), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"]);
+many_sum_md_code, many_sum_lib = compile_lib(Example("openmp_sum.cpp"), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"]);
 
 # ╔═╡ 258817e3-8495-4136-8cb9-00a4475245b2
 many_sum_md_code
@@ -513,8 +466,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╠═96bffd66-24fc-46f7-b211-57e7d27bc316
 # ╠═6657e4dd-f5c2-47c4-b0d6-a2a56aac7b96
 # ╟─6c021710-5828-4ac0-8619-ce690ba89d5f
-# ╟─8e337fad-abcf-4ad3-bf75-ab3980f36baa
-# ╟─050a67f8-7f02-4ac9-8ac4-20327d46c5e8
+# ╠═8e337fad-abcf-4ad3-bf75-ab3980f36baa
 # ╟─f95dd40b-8c56-4e10-abbc-3dbb58148e1f
 # ╟─2a1f3d29-4d6b-4634-86f3-4ecd4a7821a2
 # ╟─b2b3beda-c8bf-4616-b1bd-bdd907d11636

@@ -106,7 +106,7 @@ function emit_llvm(code; kws...)
     return code
 end
 
-function compile_lib(code; kws...)
+function compile_lib(code::Code; kws...)
     return code, compile(code; lib = true, kws...)
 end
 
@@ -157,7 +157,7 @@ struct Example
 end
 
 function code(example::Example)
-    code = read(dirname(dirname(dirname(@__DIR__))), "examples", example.name, String)
+    code = read(joinpath(dirname(dirname(dirname(@__DIR__))), "examples", example.name), String)
     ext = split(example.name, '.')[end]
     if ext == "c"
         return CCode(code)
@@ -170,4 +170,8 @@ end
 
 function compile_and_run(example::Example; kws...)
     return compile_and_run(code(example); kws...)
+end
+
+function compile_lib(example::Example; kws...)
+    return compile_lib(code(example); kws...)
 end

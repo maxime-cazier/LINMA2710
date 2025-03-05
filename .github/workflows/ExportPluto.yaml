@@ -44,6 +44,7 @@ jobs:
                       ${{ runner.os }}-pluto_state_cache-v2-${{ hashFiles('**/Project.toml', '**/Manifest.toml', '.github/workflows/*' ) }}
 
             - name: Install LLVM OpenMP runtime
+              shell: bash {0}
               run: |
                 sudo apt install -y libomp-dev
                 whereis omp.h
@@ -56,6 +57,17 @@ jobs:
                 cd tmp
                 apt download libomp-dev
                 dpkg -c *
+                whereis omp.h
+                locate omp.h
+                cd examples
+                clang++ openmp_sum.cpp -fPIC -shared -fopenmp
+                clang++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp
+                clang -x c++ openmp_sum.cpp -fPIC -shared -fopenmp
+                clang -x c++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp
+                clang++ openmp_sum.cpp -fPIC -shared -fopenmp -I/usr/lib/llvm-18/lib/clang/18/include
+                clang++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp -I/usr/lib/llvm-18/lib/clang/18/include
+                clang -x c++ openmp_sum.cpp -fPIC -shared -fopenmp -I/usr/lib/llvm-18/lib/clang/18/include
+                clang -x c++ openmp_sum.cpp -fPIC -shared -fopenmp=libomp -I/usr/lib/llvm-18/lib/clang/18/include
 
             - name: Instantiate
               run: |
