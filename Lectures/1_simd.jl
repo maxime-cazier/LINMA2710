@@ -194,7 +194,7 @@ md"For further details, see [this blog post](https://simonbyrne.github.io/notes/
 aside(tip(md"`eps` gives the difference between `1` and the number closest to `1`. See also `prevfloat` and `nextfloat`."), v_offset = -600)
 
 # ╔═╡ abf284e9-75f1-42f4-b559-8720f56b02a2
-sum_kahan_code, sum_kahan_lib = compile_lib("""
+sum_kahan_code, sum_kahan_lib = compile_lib(c"""
 float sum_kahan(float* vec, int length) {
     float total, c, t, y;
     int i;
@@ -348,7 +348,7 @@ $T c_sum($T *array, int length) {
   v.assign(array, array + length);
   return my_sum(v);
 }}"""
-	return code
+	return CppCode(code)
 end;
 
 # ╔═╡ 529ba439-40fe-4d93-88c5-797c0a9fc6ee
@@ -400,7 +400,7 @@ aside(options, v_offset = -260)
 aside(options, v_offset = -330)
 
 # ╔═╡ 8e3738ac-d742-4c60-ade8-f5565ea2d1bf
-cpp_sum_float_code, cpp_sum_float_lib = compile_lib(cpp_sum_code("float"), lib = true, cflags = [sum_opt; sum_flags], language = CppLanguage());
+cpp_sum_float_code, cpp_sum_float_lib = compile_lib(cpp_sum_code("float"), lib = true, cflags = [sum_opt; sum_flags]);
 
 # ╔═╡ 57005169-054b-4912-b0ba-742a56ee3f5f
 cpp_sum(x::Vector{Cfloat}) = ccall(("c_sum", cpp_sum_float_lib), Cfloat, (Ptr{Cfloat}, Cint), x, length(x));
@@ -416,7 +416,7 @@ cpp_sum_code_for_llvm = cpp_sum_code(
 );
 
 # ╔═╡ 972c1194-9d5f-438a-964f-176713bab912
-aside(md_code(cpp_sum_code_for_llvm, CppLanguage()), v_offset = -700)
+aside(cpp_sum_code_for_llvm, v_offset = -700)
 
 # ╔═╡ 174407b5-75be-4930-a476-7f2bfa35cdf0
 function c_sum_code(T; loop_pragmas = String[], openmp_pragmas = String[], pragmas = String[])
@@ -447,7 +447,7 @@ $T sum($T *vec, int length) {
     }
     return total;
 }"""
-	return code
+	return CCode(code)
 end;
 
 # ╔═╡ 1548a494-80a9-4295-a012-88be6de7fcfa
@@ -486,10 +486,10 @@ c_sum_code_for_llvm = c_sum_code(
 emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags]);
 
 # ╔═╡ a7421d94-6966-4b71-b8c2-7553b209f146
-aside(md_c(c_sum_code_for_llvm), v_offset = -480)
+aside(c_sum_code_for_llvm, v_offset = -480)
 
 # ╔═╡ 69bdd3ba-dbeb-4ef8-acb7-6314bee13c8c
-emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags], language = CppLanguage());
+emit_llvm(c_sum_code_for_llvm, cflags = [sum_opt; sum_flags]);
 
 # ╔═╡ eb1a0465-aafb-4f78-8f01-5c8f9672a21a
 Pkg.instantiate()
