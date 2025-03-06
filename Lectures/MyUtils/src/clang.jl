@@ -108,11 +108,11 @@ function emit_llvm(code; kws...)
 end
 
 function compile_lib(code::Code; kws...)
-    return code, compile(code; lib = true, kws...)
+    return codesnippet(code), compile(code; lib = true, kws...)
 end
 
-function compile_and_run(code::Code; args = String[], mpi::Bool = false, num_processes = nothing, show_run_command = !isempty(args) || verbose >= 1, kws...)
-    bin_file = compile(code; lib = false, mpi, kws...)
+function compile_and_run(code::Code; verbose = 0, args = String[], mpi::Bool = false, num_processes = nothing, show_run_command = !isempty(args) || verbose >= 1, kws...)
+    bin_file = compile(code; lib = false, mpi, verbose, kws...)
     if !isnothing(bin_file)
         cmd_vec = [bin_file; args]
         if mpi
