@@ -36,10 +36,10 @@ section("Motivation")
 frametitle("The need for parallelism")
 
 # ╔═╡ b348eb57-446b-42ec-9292-d5a77cd26e0c
-RobustLocalResource("https://www.karlrupp.net/wp-content/uploads/2018/02/42-years-processor-trend.png", "cache/42-years-processor-trend.png")
+img("https://www.karlrupp.net/wp-content/uploads/2018/02/42-years-processor-trend.png")
 
 # ╔═╡ b6ae6fcc-a77e-49c5-b380-06854844469e
-md"[Image source](https://www.karlrupp.net/2018/02/42-years-of-microprocessor-trend-data/)."
+aside(md"[Image source](https://www.karlrupp.net/2018/02/42-years-of-microprocessor-trend-data/)", v_offset = -300)
 
 # ╔═╡ 74ae5855-85e8-4615-bf98-e7819bc053d2
 frametitle("A bit of historical context")
@@ -55,13 +55,13 @@ hbox([md"""
 * **2009** : Develpment starts on Julia, with LLVM-based compiler
 """,
 	Div(md"""$(@draw begin
-	    placeimage_from_url("https://upload.wikimedia.org/wikipedia/commons/1/18/ISO_C%2B%2B_Logo.svg", Point(-100, -100), scale = 0.1)
+	    placeimage(URL("https://upload.wikimedia.org/wikipedia/commons/1/18/ISO_C%2B%2B_Logo.svg"), Point(-100, -100), scale = 0.1)
 	    arrow(Point(-85, -85), Point(-20, -15))
-	    placeimage_from_url("https://raw.githubusercontent.com/rust-lang/www.rust-lang.org/master/static/images/rust-social-wide-light.svg", Point(0, -100), scale = 0.15)
+	    placeimage(URL("https://raw.githubusercontent.com/rust-lang/www.rust-lang.org/master/static/images/rust-social-wide-light.svg"), Point(0, -100), scale = 0.15)
 	    arrow(Point(0, -85), Point(0, -15))
-	    placeimage_from_url("https://julialang.org/assets/infra/logo.svg", Point(100, -100), scale = 0.15)
+	    placeimage(URL("https://julialang.org/assets/infra/logo.svg"), Point(100, -100), scale = 0.15)
 	    arrow(Point(85, -85), Point(20, -15))
-		placeimage_from_url("https://llvm.org/img/LLVMWyvernSmall.png", Point(-30, 30), scale = 0.08)
+		placeimage(URL("https://llvm.org/img/LLVMWyvernSmall.png"), Point(-30, 30), scale = 0.08)
 		boxed("LLVM Intermediate Representation (IR)", Point(0, 0))
 		arrow(Point(0, 10), Point(0, 85))
 		boxed("Assembly", Point(0, 100))

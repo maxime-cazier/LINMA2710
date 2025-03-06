@@ -32,19 +32,11 @@ Shared-Memory Multiprocessing", "P.-A. Absil and B. Legat")
 # ╔═╡ 3887824b-7c7f-4c24-bf6d-7a55ed7adc89
 section("Memory layout")
 
-# ╔═╡ 315d63ce-e8dc-4c60-b3ac-fe0eb47db04c
-begin
-	dir = mktempdir()
-	file = joinpath(dir, "topo.png")
-	run(`lstopo $file`)
-	img(file)
-end
-
 # ╔═╡ 37d9b5f0-48b6-4ff3-873d-592230687995
 frametitle("Hierarchy")
 
 # ╔═╡ 138caa9b-1d53-4c01-a3b9-c1a097413736
-image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/hierarchy.jpg")
+img(URL("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/hierarchy.jpg"))
 
 # ╔═╡ 81465bf1-8e54-461f-892c-2769bf94fdfe
 md"""Latency of `n` bytes of data is given by
@@ -58,7 +50,7 @@ where ``\alpha`` is the start up time and ``\beta`` is the inverse of the bandwi
 frametitle("Cache lines and prefetch")
 
 # ╔═╡ 02be0de6-70dc-4cf4-b630-b541a304eecd
-image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/prefetch.jpeg")
+img("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/prefetch.jpeg")
 
 # ╔═╡ 658ca396-2d73-4c93-8138-33c101deee7b
 md"""
@@ -146,8 +138,8 @@ frametitle("The roofline model")
 
 # ╔═╡ d8238145-9787-40f0-a151-1ef73d8c97ee
 hbox([
-	image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/roofline1.jpeg", :height => "260px"),
-	image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/roofline3.jpeg", :height => "260px"),
+	img("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/roofline1.jpeg", :height => "260px"),
+	img("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/roofline3.jpeg", :height => "260px"),
 ])
 
 # ╔═╡ d221bad8-98fb-4c1d-9c9c-66e1b697f023
@@ -162,7 +154,7 @@ md"""
 frametitle("Cache hierarchy for a multi-core CPU")
 
 # ╔═╡ 6f70144e-5240-41ef-a719-8a8942e18fee
-image_from_url("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/cache-hierarchy.jpg")
+img("https://github.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/raw/refs/heads/main/booksources/graphics/cache-hierarchy.jpg")
 
 # ╔═╡ e90fd21d-d046-4852-823c-5d7210068923
 md"""
@@ -171,6 +163,12 @@ md"""
 
 # ╔═╡ e7445ed8-cbf7-475d-bd67-3df8d9015de2
 section("Parallel sum")
+
+# ╔═╡ a144f991-3af4-4f88-a7e8-c1f3e9d7f7e2
+aside(md"""
+Low level implementation using POSIX Threads (pthreads) covered in "LEPL1503 : Projet 3".
+We use the high level $(img(URL("https://upload.wikimedia.org/wikipedia/commons/e/eb/OpenMP_logo.png"), :width => "45pt")) library in this course.
+""", v_offset = -1000)
 
 # ╔═╡ d5432907-3e55-4035-9c91-183c37d886ea
 aside(vbox([
@@ -273,7 +271,7 @@ $T sum($T *vec, int length, int num_threads, int verbose) {
 end;
 
 # ╔═╡ ebe1cd42-ba25-4538-acbe-353e0e47009e
-sum_md_code, sum_lib = compile_lib(c_sum_code("float"; local_results, no_false_sharing, simd = true), lib = true, cflags = ["-O3", "-mavx2", "-I/usr/lib/llvm-18/lib/clang/18/include", "-fopenmp"], verbose = 1);
+sum_md_code, sum_lib = compile_lib(c_sum_code("float"; local_results, no_false_sharing, simd = true), lib = true, cflags = ["-O3", "-mavx2", "-I/usr/lib/llvm-18/lib/clang/18/include", "-fopenmp"]);
 
 # ╔═╡ 4b9cfb4d-2355-42e3-be2f-35e2638e984b
 sum_md_code
@@ -317,8 +315,55 @@ many_vec = rand(Cfloat, 2^many_log_size)
 # ╔═╡ a7118fbb-66d6-44a1-a6ae-839f0e42a3ec
 @btime c_sum($many_vec)
 
+# ╔═╡ 050a67f8-7f02-4ac9-8ac4-20327d46c5e8
+function many_sum_code(T)
+	code = """
+#include <omp.h>
+#include <stdio.h>
+
+extern "C" {
+void sum_to($T *vec, int length, $T *local_results, int num_threads, int verbose) {
+  omp_set_dynamic(0); // Force the value `num_threads`
+  omp_set_num_threads(num_threads);
+  #pragma omp parallel
+  {
+    int thread_num = omp_get_thread_num();
+	int stride = length / num_threads;
+    int last = stride * (thread_num + 1);
+    if (thread_num + 1 == num_threads)
+      last = length;
+	if (verbose >= 1)
+      fprintf(stderr, "thread id : %d / %d %d:%d\\n", thread_num, omp_get_num_threads(), stride * thread_num, last - 1);
+	$T no_false_sharing = 0;
+    #pragma omp simd
+    for (int i = stride * thread_num; i < last; i++)
+      no_false_sharing += vec[i];
+	local_results[thread_num] = no_false_sharing;
+  }
+}
+
+$T sum($T *vec, int length, int num_threads, int factor, int verbose) {
+  $T* buffers[2] = {new $T[num_threads], new $T[num_threads / factor]};
+  sum_to(vec, length, buffers[0], num_threads, verbose);
+  int prev = num_threads, cur;
+  int buffer_idx = 0;
+  for (cur = num_threads / factor; cur > 0; cur /= factor) {
+	sum_to(buffers[buffer_idx % 2], prev, buffers[(buffer_idx + 1) % 2], cur, verbose);
+	prev = cur;
+	buffer_idx += 1;
+  }
+  if (prev == 1)
+	return buffers[buffer_idx % 2][0];
+  sum_to(buffers[buffer_idx % 2], prev, buffers[(buffer_idx + 1) % 2], 1, verbose);
+  return buffers[(buffer_idx + 1) % 2][0];
+}
+}
+"""
+	return CppCode(code)
+end;
+
 # ╔═╡ 8e337fad-abcf-4ad3-bf75-ab3980f36baa
-many_sum_md_code, many_sum_lib = compile_lib(Example("openmp_sum.cpp"), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"], verbose = 1);
+many_sum_md_code, many_sum_lib = compile_lib(many_sum_code("float"), lib = true, cflags = ["-O3", "-mavx2", "-fopenmp"]);
 
 # ╔═╡ 258817e3-8495-4136-8cb9-00a4475245b2
 many_sum_md_code
@@ -426,7 +471,6 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─d537aa7e-f38a-11ef-3bef-b7291789fea9
 # ╟─8a51b9c5-8888-4578-ae40-cf906ec9b5fa
 # ╟─3887824b-7c7f-4c24-bf6d-7a55ed7adc89
-# ╟─315d63ce-e8dc-4c60-b3ac-fe0eb47db04c
 # ╟─37d9b5f0-48b6-4ff3-873d-592230687995
 # ╟─138caa9b-1d53-4c01-a3b9-c1a097413736
 # ╟─81465bf1-8e54-461f-892c-2769bf94fdfe
@@ -461,6 +505,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╠═b5f1d18c-53ad-4441-8ca8-e02d6ab840d0
 # ╠═3a5d674d-7c5b-4dac-b9ae-d65a1e9a5cba
 # ╠═253bd533-99b7-4012-b3f4-e86a2466a919
+# ╟─a144f991-3af4-4f88-a7e8-c1f3e9d7f7e2
 # ╟─d5432907-3e55-4035-9c91-183c37d886ea
 # ╟─1b9fb8aa-71cf-4e69-ad84-666c1b66bb5e
 # ╟─ebe1cd42-ba25-4538-acbe-353e0e47009e
@@ -476,6 +521,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╠═6657e4dd-f5c2-47c4-b0d6-a2a56aac7b96
 # ╟─6c021710-5828-4ac0-8619-ce690ba89d5f
 # ╟─8e337fad-abcf-4ad3-bf75-ab3980f36baa
+# ╟─050a67f8-7f02-4ac9-8ac4-20327d46c5e8
 # ╟─f95dd40b-8c56-4e10-abbc-3dbb58148e1f
 # ╟─2a1f3d29-4d6b-4634-86f3-4ecd4a7821a2
 # ╟─b2b3beda-c8bf-4616-b1bd-bdd907d11636
