@@ -32,6 +32,14 @@ Shared-Memory Multiprocessing", "P.-A. Absil and B. Legat")
 # ╔═╡ 3887824b-7c7f-4c24-bf6d-7a55ed7adc89
 section("Memory layout")
 
+# ╔═╡ dbe9c6d8-611e-46f9-9a8e-2b3647e813fa
+begin
+    dir = mktempdir()
+    file = joinpath(dir, "topo.png")
+    run(`lstopo $file`)
+    img(file)
+end
+
 # ╔═╡ 37d9b5f0-48b6-4ff3-873d-592230687995
 frametitle("Hierarchy")
 
@@ -471,6 +479,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─d537aa7e-f38a-11ef-3bef-b7291789fea9
 # ╟─8a51b9c5-8888-4578-ae40-cf906ec9b5fa
 # ╟─3887824b-7c7f-4c24-bf6d-7a55ed7adc89
+# ╟─dbe9c6d8-611e-46f9-9a8e-2b3647e813fa
 # ╟─37d9b5f0-48b6-4ff3-873d-592230687995
 # ╟─138caa9b-1d53-4c01-a3b9-c1a097413736
 # ╟─81465bf1-8e54-461f-892c-2769bf94fdfe

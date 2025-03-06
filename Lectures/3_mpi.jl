@@ -4,6 +4,18 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    #! format: off
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+    #! format: on
+end
+
 # ╔═╡ 82e1ea5e-f8e0-11ef-0f93-49a66050feaf
 import Pkg
 
@@ -91,8 +103,11 @@ md"""
 Processes that are on the same node share the same `processor_name` (the `hostname`).
 """
 
+# ╔═╡ a103c5af-42fe-4f8c-b78c-6946895105d7
+md"`num_processes` = $(@bind num_processes Slider(2:8, default = 4, show_value = true))"
+
 # ╔═╡ b0ca0392-71b8-4f44-8c6c-0978a02a0e6c
-compile_and_run(Example("procname.c"), mpi = true, verbose = 1, show_run_command = true)
+compile_and_run(Example("procname.c"); mpi = true, verbose = 1, show_run_command = true, num_processes)
 
 # ╔═╡ 21b6133f-db59-4885-9b3d-331c3d6ef306
 frametitle("Compiling")
@@ -181,8 +196,35 @@ hbox([
 
 # ╔═╡ 233c13ff-f008-40b0-a6c5-c5395b2215ec
 Foldable(
-	md"Lower bound complexity for ``n`` bytes (sum of length of all messages) with ``p`` processes ?",
-	md"Lower bound : ``\log_2(p) \alpha`` using *spanning tree* algorithm and ``\beta n`` as all message need to sent at least once. *spanning tree* is advantageous if ``\alpha`` is larger than ``\beta`` and direct to `1` if otherwise. In practice, you want a mix of both."
+	md"Lower bound complexity with ``p`` processes if ``x_i`` has length ``n/p`` bytes ?",
+	md"""
+Lower bound : ``\log_2(p) \alpha`` using *spanning tree* algorithm and ``\beta n`` as all message need to sent at least once. *spanning tree* is advantageous if ``\alpha`` is larger than ``\beta`` and direct to `1` if otherwise. In practice, you want a mix of both.
+
+First send ``x_2`` from 2 to 1 and simultaneously send ``x_4`` from 4 to 3.
+Complexity is ``\alpha + \beta n/4``
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` |   |   |   |
+|    | ``x_2`` | ``x_2`` |   |   |
+|    |   |   | ``x_3`` |   |
+|    |   |   | ``x_4`` | ``x_4`` |
+
+Then send ``(x_3, x_4)`` from 3 to 1.
+Complexity is ``\alpha + 2\beta n/4``
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` |   |   |   |
+|    | ``x_2`` | ``x_2`` |   |   |
+|    | ``x_3`` |   | ``x_3`` |   |
+|    | ``x_4`` |   | ``x_4`` | ``x_4`` |
+
+It total, it is ``2\alpha + 3\beta n/4``. In general, we have
+```math
+\log_2(p)\alpha + \beta n(1 + 2 + 4 + \cdots + p/2)/p = \log_2(p)\alpha + \beta n(p - 1)/p \approx \log_2(p)\alpha + \beta n
+```
+"""
 )
 
 # ╔═╡ ad3559d1-6180-4eaa-b97d-3c1f10f036b9
@@ -221,20 +263,157 @@ Then second communication (3 → 1)
 )
 
 # ╔═╡ 4fdb4cd6-a794-4b14-84b0-72f484c6ea86
-frametitle("Additional collectives")
+frametitle("All gather")
 
-# ╔═╡ d4b8983b-fcee-4dd2-ace0-257e197ebb41
-md"""
-* `MPI_Allgather` : Equivalent to `MPI_Gather` followed by `MPI_Bcast`.
-* `MPI_Reduce_scatter` : Equivalent to `MPI_Reduce` followed by `MPI_Scatter`.
-* `MPI_Allreduce` : Equivalent to `MPI_Reduce` followed by `MPI_Bcast`.
-"""
+# ╔═╡ a258eec9-f4f6-49bd-8470-8541836f5f6b
+hbox([
+	md"""Before
 
-# ╔═╡ 6d3fc7e8-50af-48cb-a80a-0e72c1771b96
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` |   |   |   |
+|    |   | ``x_2`` |   |   |
+|    |   |   | ``x_3`` |   |
+|    |   |   |   | ``x_4`` |
+""",
+	Div(md"` `", style = Dict("margin" => "50pt")),
+	md"""After `MPI_Allgather`
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` | ``x_1`` | ``x_1`` | ``x_1`` |
+|    | ``x_2`` | ``x_2`` | ``x_2`` | ``x_2`` |
+|    | ``x_3`` | ``x_3`` | ``x_3`` | ``x_3`` |
+|    | ``x_4`` | ``x_4`` | ``x_4`` | ``x_4`` |
+""",
+])
+
+# ╔═╡ 6fc34de1-469b-41a9-9677-ff3182f7a498
+Foldable(md"Can `MPI_Allgather` be implemented by combining existing collectives ?", md"`MPI_Allgather` can be implemented by `MPI_Gather` followed by `MPI_Bcast`")
+
+# ╔═╡ de20bf96-7d33-4a78-8147-f0b7f8488e46
 Foldable(
-	md"Is there another way to combine exising collectives to implement `MPI_Allreduce` ?",
 	md"""
-`MPI_Reduce_scatter` followed by `MPI_Allgather`
+Would it be more efficient to have a specialized implementation instead of combining existing collectives ?
+""",
+	md"""
+Let the size of `x_i` be ``n/p``. `MPI_Gather` has complexity ``\log_2(p)\alpha + \beta n`` and `MPI_Bcast` has complexity ``\log_2(p) (\alpha + \beta n)``
+so in total ``\log_2(p) (\alpha + \beta n)``. Can we do better ?
+
+Start exchanging between 1 and 2 and simultaneously exchanging between 3 and 4.
+The complexity is ``\alpha + \beta n/4``.
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` | ``x_1`` |   |   |
+|    | ``x_2`` | ``x_2`` |   |   |
+|    |   |   | ``x_3`` | ``x_3`` |
+|    |   |   | ``x_4`` | ``x_4`` |
+
+Next, we exchange between 1 and 3 and simultaneously between 2 and 4.
+The complexity is ``\alpha + 2\beta n/4``.
+In total, we have complexity
+```math
+\begin{align}
+\log_2(p) \alpha + \beta n(1 + 2 + 4 + \cdots + p/2)/p
+& =
+\log_2(p) \alpha + \beta n(p-1)/p\\
+& \approx \log_2(p) \alpha + \beta n.
+\end{align}
+```
+""",
+)
+
+# ╔═╡ e119c2d3-1e24-464f-b812-62f28c00a913
+frametitle("Reduce scatter")
+
+# ╔═╡ dbc19cbb-1349-4904-b655-2452aa7e2452
+vbox([
+	md"""Before
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_{1,1}`` | ``x_{1,2}`` | ``x_{1,3}`` | ``x_{1,4}`` |
+|    | ``x_{2,1}`` | ``x_{2,2}`` | ``x_{2,3}`` | ``x_{2,4}`` |
+|    | ``x_{3,1}`` | ``x_{3,2}`` | ``x_{3,3}`` | ``x_{3,4}`` |
+|    | ``x_{4,1}`` | ``x_{4,2}`` | ``x_{4,3}`` | ``x_{4,4}`` |
+""",
+	#Div(md"` `", style = Dict("margin" => "50pt")),
+	md"""After `MPI_Reduce_scatter`
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_{1,1} + \cdots + x_{1,4}`` |  |  |  |
+|    |  | ``x_{2,1} + \cdots + x_{2,4}`` |  |  |
+|    |  |  | ``x_{3,1} + \cdots + x_{3,4}`` |  |
+|    |  |  |  | ``x_{4,1} + \cdots + x_{4,4}`` |
+""",
+])
+
+# ╔═╡ 2ff573a3-4a84-4497-9305-2d97e35e5e3d
+Foldable(md"Can `MPI_Reduce_scatter` be implemented by combining existing collectives ?", md"`MPI_Reduce_scatter` can be implemented by `MPI_Reduce` followed by `MPI_Scatter`")
+
+# ╔═╡ 6be49c46-4900-4457-81b4-0704cd7da0af
+Foldable(
+	md"""
+Would it be more efficient to have a specialized implementation instead of combining existing collectives ?
+""",
+	md"""
+Let the size of ``x_i`` be ``n/p``. `MPI_Reduce` has complexity ``\log_2(p)(\alpha + \beta n + \gamma n)`` and `MPI_Scatter` has complexity ``\log_2(p) \alpha + \beta n``
+so in total ``\log_2(p) (\alpha + \beta n)``. Can we do better ?
+
+Start exchanging between 1 and 2 and simultaneously exchanging between 3 and 4.
+The complexity is ``\alpha + 2(\beta + \gamma) n/4``.
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_{1,1} + x_{1,2}`` |  | ``x_{1,3} + x_{1,4}`` |  |
+|    |  | ``x_{2,1} + x_{2,2}`` |  | ``x_{2,3} + x_{2,4}`` |
+|    | ``x_{3,1} + x_{3,2}`` |  | ``x_{3,3} + x_{3,4}`` |  |
+|    |  | ``x_{4,1} + x_{4,2}`` |  | ``x_{4,3} + x_{4,4}`` |
+
+Next, we exchange between 1 and 3 and simultaneously between 2 and 4.
+The complexity is ``\alpha + (\beta + \gamma) n/4``.
+In total, we have complexity
+```math
+\begin{align}
+  \log_2(p) \alpha + (\beta + \gamma) n(p/2 + \cdots + 4 + 2 + 1)/p
+  & =
+  \log_2(p) \alpha + (\beta + \gamma) n(p-1)/p\\
+  & \approx
+  \log_2(p) \alpha + (\beta + \gamma) n.
+\end{align}
+```
+""",
+)
+
+# ╔═╡ 60bc118f-6795-43f9-97a2-865fd1704895
+frametitle("Allreduce")
+
+# ╔═╡ 0d69e94b-492a-4acc-adba-a2126b871724
+vbox([
+	md"""Before
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` | ``x_2`` | ``x_3`` | ``x_4`` |
+""",
+	#Div(md"` `", style = Dict("margin" => "50pt")),
+	md"""After `MPI_Reduce_scatter`
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1 + \cdots + x_4`` |``x_1 + \cdots + x_4`` | ``x_1 + \cdots + x_4`` | ``x_1 + \cdots + x_4`` |
+""",
+])
+
+# ╔═╡ b9a9e335-1328-4c63-a213-ce21263bc201
+Foldable(
+	md"Can `MPI_Allreduce` be implemented by combining existing collectives ?",
+	md"""
+`MPI_Allreduce` can be implemented either by combining `MPI_Reduce` followed by `MPI_Bcast` or `MPI_Reduce_scatter` followed by `MPI_Allgather`.
+The first choice would lead to a complexity of ``\log_2(p)(\alpha + \beta n)``
+The second would lead to a complexity of ``\log_2(p)\alpha + \beta n``.
 """,
 )
 
@@ -537,6 +716,7 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─82230d6c-25ce-4d12-8842-e0651fc4b143
 # ╟─7d9ac5f9-39bf-4052-ad8a-ac0fec15c64a
 # ╟─b0ca0392-71b8-4f44-8c6c-0978a02a0e6c
+# ╟─a103c5af-42fe-4f8c-b78c-6946895105d7
 # ╟─21b6133f-db59-4885-9b3d-331c3d6ef306
 # ╟─35ba1eea-56ae-4b74-af96-21ec5a93c455
 # ╠═8981b5e2-2497-478e-ab28-a14b62f6f916
@@ -553,8 +733,16 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─c420ad25-6af1-4fb4-823a-b6bbd4e10f7f
 # ╟─db16e939-b490-497b-a03f-80ce2e8485af
 # ╟─4fdb4cd6-a794-4b14-84b0-72f484c6ea86
-# ╟─d4b8983b-fcee-4dd2-ace0-257e197ebb41
-# ╟─6d3fc7e8-50af-48cb-a80a-0e72c1771b96
+# ╟─a258eec9-f4f6-49bd-8470-8541836f5f6b
+# ╟─6fc34de1-469b-41a9-9677-ff3182f7a498
+# ╟─de20bf96-7d33-4a78-8147-f0b7f8488e46
+# ╟─e119c2d3-1e24-464f-b812-62f28c00a913
+# ╟─dbc19cbb-1349-4904-b655-2452aa7e2452
+# ╟─2ff573a3-4a84-4497-9305-2d97e35e5e3d
+# ╟─6be49c46-4900-4457-81b4-0704cd7da0af
+# ╟─60bc118f-6795-43f9-97a2-865fd1704895
+# ╟─0d69e94b-492a-4acc-adba-a2126b871724
+# ╟─b9a9e335-1328-4c63-a213-ce21263bc201
 # ╟─a1b2d090-d498-4d5d-90a0-8cdc648dc833
 # ╟─a771f33f-7ed1-41aa-bee0-c215729a8c8d
 # ╟─370f0f20-e373-4028-bca1-83e93678cbcb

@@ -27,7 +27,7 @@ function imgpath(path::Path)
 end
 
 function img(path::Path, args...; kws...)
-    return PlutoUI.LocalResource(imgpath(file), args...)
+    return PlutoUI.LocalResource(imgpath(path), args...)
 end
 
 struct URL
