@@ -111,26 +111,132 @@ run(`mpic++ -show`)
 # ╔═╡ 40606ee3-38cc-4123-9b86-b774bf89e499
 section("Collectives")
 
-# ╔═╡ c2578811-2a84-4759-947b-d370d559a2d0
-hbox([
-	img("https://mpitutorial.com/tutorials/mpi-scatter-gather-and-allgather/broadcastvsscatter.png"),
-	vbox([
-		img("https://mpitutorial.com/tutorials/mpi-scatter-gather-and-allgather/gather.png"),
-		img("https://mpitutorial.com/tutorials/mpi-scatter-gather-and-allgather/allgather.png"),
-	]),
-])
-
 # ╔═╡ b94cd399-0370-49e9-a522-056f3af22955
 img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol2_parallelprogramming/refs/heads/main/booksources/graphics/collectives.jpg")
 
-# ╔═╡ 5b33a0f5-5bd1-4e58-a122-85cf1baa6e29
-img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol2_parallelprogramming/refs/heads/main/booksources/graphics/collective_comm.jpg")
+# ╔═╡ 9b4cae31-c319-444e-98c8-2c0bfc6dfa0c
+frametitle("Broadcast")
 
-# ╔═╡ 7aae4bcf-5f2b-43bf-aa8f-df6ec0f6ac43
-aside(md"[Source](https://mpitutorial.com/tutorials/mpi-scatter-gather-and-allgather/)", v_offset = -200)
+# ╔═╡ 8b83570a-6982-47e5-a167-a6d6afee0f7d
+hbox([
+	md"""Before
 
-# ╔═╡ 321c7d0d-1b95-404c-9cb5-6c6df97b3836
-frametitle("Reduction collectives")
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x`` |   |   |   |
+""",
+	Div(md"` `", style = Dict("margin" => "50pt")),
+	md"""After
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x`` | ``x`` | ``x`` | ``x`` |
+""",
+])
+
+# ╔═╡ 5d72bf87-7f3a-4229-9d7a-2e63c115087d
+Foldable(
+	md"Lower bound complexity for ``n`` bytes with ``p`` processes ?",
+	md"""Lower bound : ``\log_2(p) (\alpha + \beta n)`` using *spanning tree* algorithm:
+
+After first communication (1 → 3):
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x`` |   | ``x``  |   |
+
+After second communication (1 → 2 and 3 → 4 at the same time):
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x`` | ``x`` | ``x`` | ``x`` |
+	"""
+)
+
+# ╔═╡ 7b1d26c6-9499-4e44-84c8-c272737a175e
+frametitle("Gather")
+
+# ╔═╡ fc43b343-79cd-4342-8d80-8ea72cf34942
+hbox([
+	md"""Before
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` |   |   |   |
+|    |   | ``x_2`` |   |   |
+|    |   |   | ``x_3`` |   |
+|    |   |   |   | ``x_4`` |
+""",
+	Div(md"` `", style = Dict("margin" => "50pt")),
+	md"""After
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` |   |   |   |
+|    | ``x_2`` |   |   |   |
+|    | ``x_3`` |   |   |   |
+|    | ``x_4`` |   |   |   |
+""",
+])
+
+# ╔═╡ 233c13ff-f008-40b0-a6c5-c5395b2215ec
+Foldable(
+	md"Lower bound complexity for ``n`` bytes (sum of length of all messages) with ``p`` processes ?",
+	md"Lower bound : ``\log_2(p) \alpha`` using *spanning tree* algorithm and ``\beta n`` as all message need to sent at least once. *spanning tree* is advantageous if ``\alpha`` is larger than ``\beta`` and direct to `1` if otherwise. In practice, you want a mix of both."
+)
+
+# ╔═╡ ad3559d1-6180-4eaa-b97d-3c1f10f036b9
+frametitle("Reduce")
+
+# ╔═╡ c420ad25-6af1-4fb4-823a-b6bbd4e10f7f
+hbox([
+	md"""Before
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1`` | ``x_2`` | ``x_3`` | ``x_4`` |
+""",
+	Div(md"` `", style = Dict("margin" => "50pt")),
+	md"""After
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1 + x_2 + x_3 + x_4`` |  |  |  |
+""",
+])
+
+# ╔═╡ db16e939-b490-497b-a03f-80ce2e8485af
+Foldable(
+	md"Lower bound complexity for ``n`` bytes with ``p`` processes and arithmetic complexity ``\gamma`` ?",
+	md"""Lower bound : ``\log_2(p) (\alpha + \beta n) + \log_2(p) \gamma n`` using *spanning tree* algorithm:
+
+First communication (2 → 1 and 4 → 3 at the same time):
+
+| `procid` | 1 | 2 | 3 | 4 |
+|----------|---|---|---|---|
+|    | ``x_1 + x_2`` |   | ``x_3 + x_4``  |   |
+
+Then second communication (3 → 1)
+	"""
+)
+
+# ╔═╡ 4fdb4cd6-a794-4b14-84b0-72f484c6ea86
+frametitle("Additional collectives")
+
+# ╔═╡ d4b8983b-fcee-4dd2-ace0-257e197ebb41
+md"""
+* `MPI_Allgather` : Equivalent to `MPI_Gather` followed by `MPI_Bcast`.
+* `MPI_Reduce_scatter` : Equivalent to `MPI_Reduce` followed by `MPI_Scatter`.
+* `MPI_Allreduce` : Equivalent to `MPI_Reduce` followed by `MPI_Bcast`.
+"""
+
+# ╔═╡ 6d3fc7e8-50af-48cb-a80a-0e72c1771b96
+Foldable(
+	md"Is there another way to combine exising collectives to implement `MPI_Allreduce` ?",
+	md"""
+`MPI_Reduce_scatter` followed by `MPI_Allgather`
+""",
+)
 
 # ╔═╡ a1b2d090-d498-4d5d-90a0-8cdc648dc833
 section("Distributed sum")
@@ -153,6 +259,70 @@ compile_and_run(Example("mpi_sum.c"), mpi = true, num_processes = 4, verbose = 1
 # ╔═╡ e832ce25-94e2-4743-854d-02b52cc7b56d
 aside(Foldable(md"Why is it the first process that gets the sum ?", md"We gave 0 to the 6th argument of `MPI_Reduce`, this decides which node gets the sum."), v_offset = -100)
 
+# ╔═╡ 79b405a5-54b5-4727-a0cd-b79522ad109f
+section("Point-to-point")
+
+# ╔═╡ d2104fbd-ba22-4501-b03a-8809271d598b
+frametitle(md"Blocking communication")
+
+# ╔═╡ 0e640e07-82c7-4dab-a8f1-2f634bbebdea
+hbox([
+	img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol2_parallelprogramming/refs/heads/main/booksources/graphics/send-ideal.png", :height => "150pt"),
+	img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol2_parallelprogramming/refs/heads/main/booksources/graphics/send-blocking.png", :height => "160pt"),
+])
+
+# ╔═╡ 4569aa05-9963-4976-ac63-caf3f3979e83
+md"""
+Blocking send/received with `MPI_Send` and `MPI_Recv`.
+
+The network cannot buffer the whole message (unless it is short). The sender need to wait for the receiver to be ready and then transfer its copy of the data.
+"""
+
+# ╔═╡ 34a10003-2c32-4332-b3e6-ce70eec0cbbe
+frametitle("Example")
+
+# ╔═╡ ce7bf747-7116-4e76-9004-f234317046c3
+compile_and_run(Example("mpi_bench1.c"), mpi = true, num_processes = 2)
+
+# ╔═╡ d7e31ced-4eb2-4221-b83f-462e8f32fe89
+aside(Foldable(md"Is this timing bandwith accurately ?",
+md"No, the time also includes the time that process 0 has to wait until process 1 is ready to start receiving. If the message is too small, it will just buffer the message and `MPI_Send` could return before the other process even reached `MPI_Recv`, see next slide."
+), v_offset = -500)
+
+# ╔═╡ c3c848ff-526a-450d-9b1c-5d9d3ccccf28
+frametitle("Eager vs rendezvous protocol")
+
+# ╔═╡ 67dee339-98b4-4714-88b2-8098a13235f2
+md"""
+There are two protocols:
+* Rendezvous protocol
+  1. the sender sends a header;
+  2. the receiver returns a ‘ready-to-send’ message;
+  3. the sender sends the actual data.
+* Eager protocol the message is buffered so `MPI_Send` can return eagerly, before the receiver is even ready
+
+Eager protocol is used if the data size is smaller than the *eager limit*.
+To force the rendezvous protocol, use `MPI_Ssend`.
+"""
+
+# ╔═╡ 32f740e7-9338-4c42-8eaf-ce8022412c50
+frametitle("Nonblocking communication")
+
+# ╔═╡ 8a527c17-bf2b-4e6b-937f-ef3a269c5112
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol2_parallelprogramming/refs/heads/main/booksources/graphics/send-nonblocking.jpeg", :height => "200pt")
+
+# ╔═╡ 93f0c63c-b597-4f89-809c-7af0476f319a
+md"""
+`MPI_Isend` and `MPI_Irecv` where `I` stands for `immediate` or `incomplete`.
+`MPI_Wait` can be used to wait for the send and receive to finish.
+"""
+
+# ╔═╡ 568057f5-b0b8-4225-8e4b-5eec911a52ef
+frametitle("Example")
+
+# ╔═╡ 26aa369f-e5c7-4fe5-8b6b-903f4f4e91ba
+compile_and_run(Example("mpi_bench2.c"), mpi = true, num_processes = 2)
+
 # ╔═╡ a79c410a-bebf-434c-9730-568e0ff4f4c7
 section("Consortium des Équipements de Calcul Intensif (CÉCI)")
 
@@ -171,6 +341,34 @@ aside(img("https://upload.wikimedia.org/wikipedia/en/3/3e/The_LUMI_supercomputer
 
 # ╔═╡ be0e3ba0-18cc-4b9a-a56d-2566f5148fae
 frametitle(md"""$(img("https://github.com/TACC/Lmod/raw/main/logos/2x/Lmod-4color%402x.png", :height => "30px"))""")
+
+# ╔═╡ c1285653-38ba-418b-bdf5-cda99440998d
+aside(tip(Foldable(md"Use `module spider` to see which version are available",
+md"""
+```
+[blegat@lm4-f001 ~]$ module spider gompi
+
+----------------------------
+  gompi:
+----------------------------
+    Description:
+      GNU Compiler Collection (GCC) based compiler toolchain, including OpenMPI for MPI support.
+
+     Versions:
+        gompi/2021b
+        gompi/2022b
+        gompi/2023a
+        gompi/2023b
+
+----------------------------
+  For detailed information about a specific "gompi" package (including how to load the modules) use the module's full name.
+  Note that names that have a trailing (E) are extensions provided by other modules.
+  For example:
+
+     $ module spider gompi/2023b
+----------------------------
+```
+""")), v_offset = -300)
 
 # ╔═╡ 88f33f35-d922-4d98-af4a-ebb79d9b7dc6
 mpicc_cmd = md"""
@@ -230,33 +428,33 @@ $mpicc_cmd
 $list_2
 """
 
-# ╔═╡ c1285653-38ba-418b-bdf5-cda99440998d
-aside(tip(Foldable(md"Use `module spider` to see which version are available",
+# ╔═╡ 51d70f9a-cd67-44b9-8fd1-5ab70b526c7a
+frametitle("Launching a job")
+
+# ╔═╡ 944d827e-bc6a-4de8-b959-5fde8790bedc
 md"""
+```sh
+[local computer]$ ssh lemaitre4
+[blegat@lm4-f001 ~]$ cd LINMA2710/examples
+[blegat@lm4-f001 examples]$ mpicc procname.c
+-bash: mpicc: command not found
 ```
-[blegat@lm4-f001 ~]$ module spider gompi
+"""
 
-----------------------------
-  gompi:
-----------------------------
-    Description:
-      GNU Compiler Collection (GCC) based compiler toolchain, including OpenMPI for MPI support.
-
-     Versions:
-        gompi/2021b
-        gompi/2022b
-        gompi/2023a
-        gompi/2023b
-
-----------------------------
-  For detailed information about a specific "gompi" package (including how to load the modules) use the module's full name.
-  Note that names that have a trailing (E) are extensions provided by other modules.
-  For example:
-
-     $ module spider gompi/2023b
-----------------------------
+# ╔═╡ 3a2bfd4e-0ce6-4a79-a578-fc1b4ef563c5
+Foldable(md"How to fix it ?", md"""
+We should load `gompi` or at least `OpenMPI`:
+```sh
+[blegat@lm4-f001 examples]$ module load OpenMPI
+[blegat@lm4-f001 examples]$ mpicc procname.c
+[blegat@lm4-f001 examples]$ mpiexec -n 4 a.out
+Process 1/4 is running on node <<lm4-f001>>
+Process 3/4 is running on node <<lm4-f001>>
+Process 0/4 is running on node <<lm4-f001>>
+Process 2/4 is running on node <<lm4-f001>>
 ```
-""")), v_offset = -300)
+$(Foldable(md"Why are they all on same node ?", md"We are on the *login node*, we need to run jobs on the *compute nodes* using Slurm !"))
+""")
 
 # ╔═╡ beee4908-d519-413a-964f-149bb82cdbb8
 frametitle("Slurm")
@@ -279,6 +477,31 @@ See [CÉCI documentation](https://support.ceci-hpc.be/doc/_contents/QuickStart/S
 """,
 ])
 
+# ╔═╡ 9a100ccf-1ad3-4d2c-bbe0-e297969eb69e
+section("Topology")
+
+# ╔═╡ 921b5a18-0733-4032-a543-9d60e254b1b2
+md"""
+Topology awareness is important, specified in [Slurm's `topology.conf` file](https://slurm.schedmd.com/topology.conf.html).
+"""
+
+# ╔═╡ 10a1b3a7-21c7-4f97-93e1-006ad3aea40d
+frametitle("Butterfly")
+
+# ╔═╡ 3ec3c058-a94d-4717-b99f-66373f2fa31d
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/butterflys.jpeg")
+
+# ╔═╡ 21d507f6-02f8-4f8b-84f1-bcb84731df66
+frametitle("Fat-tree")
+
+# ╔═╡ 4aac6ab5-053a-4f60-9e2e-e8d61ff0cecb
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/fattree5.jpg")
+
+# ╔═╡ b53ec488-ff25-4647-ab00-fbf90963a795
+md"""
+*blocking factor* : Ratio between upper links and lower links. Ratio is 1 for fat-tree to prevent bottlenecks if all nodes start communicating.
+"""
+
 # ╔═╡ 972b8af7-5e4d-4236-8875-016d1ed5b535
 Pkg.instantiate()
 
@@ -287,6 +510,15 @@ biblio = load_biblio!();
 
 # ╔═╡ 2504c31b-ea38-403f-931a-8ebb72e73af4
 bibrefs(biblio, "eijkhout2017Parallel")
+
+# ╔═╡ 3a50ca06-06e8-4a61-ade2-afbfc52ca655
+aside(md"""See $(bibcite(biblio, "eijkhout2017Parallel", "Section 4.1.4.2"))""", v_offset = -100)
+
+# ╔═╡ a59db59c-d34e-4abd-8865-9907607e06a8
+aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.27"))""", v_offset = -200)
+
+# ╔═╡ f2417047-33fc-4489-8e89-115bc6b46c13
+aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))""", v_offset = -200)
 
 # ╔═╡ Cell order:
 # ╟─58e12afd-6eb0-4731-bd57-d9ae7ab4e164
@@ -310,11 +542,19 @@ bibrefs(biblio, "eijkhout2017Parallel")
 # ╠═8981b5e2-2497-478e-ab28-a14b62f6f916
 # ╠═5441e428-b320-433c-acde-15fe6bf58537
 # ╟─40606ee3-38cc-4123-9b86-b774bf89e499
-# ╟─c2578811-2a84-4759-947b-d370d559a2d0
 # ╟─b94cd399-0370-49e9-a522-056f3af22955
-# ╟─5b33a0f5-5bd1-4e58-a122-85cf1baa6e29
-# ╟─7aae4bcf-5f2b-43bf-aa8f-df6ec0f6ac43
-# ╟─321c7d0d-1b95-404c-9cb5-6c6df97b3836
+# ╟─9b4cae31-c319-444e-98c8-2c0bfc6dfa0c
+# ╟─8b83570a-6982-47e5-a167-a6d6afee0f7d
+# ╟─5d72bf87-7f3a-4229-9d7a-2e63c115087d
+# ╟─7b1d26c6-9499-4e44-84c8-c272737a175e
+# ╟─fc43b343-79cd-4342-8d80-8ea72cf34942
+# ╟─233c13ff-f008-40b0-a6c5-c5395b2215ec
+# ╟─ad3559d1-6180-4eaa-b97d-3c1f10f036b9
+# ╟─c420ad25-6af1-4fb4-823a-b6bbd4e10f7f
+# ╟─db16e939-b490-497b-a03f-80ce2e8485af
+# ╟─4fdb4cd6-a794-4b14-84b0-72f484c6ea86
+# ╟─d4b8983b-fcee-4dd2-ace0-257e197ebb41
+# ╟─6d3fc7e8-50af-48cb-a80a-0e72c1771b96
 # ╟─a1b2d090-d498-4d5d-90a0-8cdc648dc833
 # ╟─a771f33f-7ed1-41aa-bee0-c215729a8c8d
 # ╟─370f0f20-e373-4028-bca1-83e93678cbcb
@@ -322,6 +562,21 @@ bibrefs(biblio, "eijkhout2017Parallel")
 # ╟─7cf59087-efca-4f03-90dc-f2acefdcbc8a
 # ╟─35aa1295-642f-4525-bf19-df2a42ff39d6
 # ╟─e832ce25-94e2-4743-854d-02b52cc7b56d
+# ╟─79b405a5-54b5-4727-a0cd-b79522ad109f
+# ╟─d2104fbd-ba22-4501-b03a-8809271d598b
+# ╟─0e640e07-82c7-4dab-a8f1-2f634bbebdea
+# ╟─4569aa05-9963-4976-ac63-caf3f3979e83
+# ╟─34a10003-2c32-4332-b3e6-ce70eec0cbbe
+# ╟─ce7bf747-7116-4e76-9004-f234317046c3
+# ╟─d7e31ced-4eb2-4221-b83f-462e8f32fe89
+# ╟─c3c848ff-526a-450d-9b1c-5d9d3ccccf28
+# ╟─67dee339-98b4-4714-88b2-8098a13235f2
+# ╟─3a50ca06-06e8-4a61-ade2-afbfc52ca655
+# ╟─32f740e7-9338-4c42-8eaf-ce8022412c50
+# ╟─8a527c17-bf2b-4e6b-937f-ef3a269c5112
+# ╟─93f0c63c-b597-4f89-809c-7af0476f319a
+# ╟─568057f5-b0b8-4225-8e4b-5eec911a52ef
+# ╟─26aa369f-e5c7-4fe5-8b6b-903f4f4e91ba
 # ╟─a79c410a-bebf-434c-9730-568e0ff4f4c7
 # ╟─39f48c25-6efb-4ff2-aedc-9d3e722dad24
 # ╟─55e96151-2aa1-4ea0-b672-2038c57d911e
@@ -331,8 +586,20 @@ bibrefs(biblio, "eijkhout2017Parallel")
 # ╟─88f33f35-d922-4d98-af4a-ebb79d9b7dc6
 # ╟─e3474aea-ee14-4c78-ae46-5badc66a543a
 # ╟─6c1984f6-4e36-4637-b0da-c7dd8b0f9ff0
+# ╟─51d70f9a-cd67-44b9-8fd1-5ab70b526c7a
+# ╟─944d827e-bc6a-4de8-b959-5fde8790bedc
+# ╟─3a2bfd4e-0ce6-4a79-a578-fc1b4ef563c5
 # ╟─beee4908-d519-413a-964f-149bb82cdbb8
 # ╟─d8bb1d43-bf42-4a09-bdeb-5db406ef1ccd
+# ╟─9a100ccf-1ad3-4d2c-bbe0-e297969eb69e
+# ╟─921b5a18-0733-4032-a543-9d60e254b1b2
+# ╟─10a1b3a7-21c7-4f97-93e1-006ad3aea40d
+# ╟─3ec3c058-a94d-4717-b99f-66373f2fa31d
+# ╟─a59db59c-d34e-4abd-8865-9907607e06a8
+# ╟─21d507f6-02f8-4f8b-84f1-bcb84731df66
+# ╟─4aac6ab5-053a-4f60-9e2e-e8d61ff0cecb
+# ╟─b53ec488-ff25-4647-ab00-fbf90963a795
+# ╟─f2417047-33fc-4489-8e89-115bc6b46c13
 # ╟─82e1ea5e-f8e0-11ef-0f93-49a66050feaf
 # ╟─972b8af7-5e4d-4236-8875-016d1ed5b535
 # ╟─8df4ff2f-d176-4b4e-a525-665b5d07ea52

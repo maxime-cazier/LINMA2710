@@ -3,7 +3,7 @@
 
 void sum(float *vec, int length, int verbose) {
   MPI_Comm comm = MPI_COMM_WORLD;
-  int nprocs,procid;
+  int nprocs, procid;
   MPI_Init(NULL, NULL);
   MPI_Comm_size(comm,&nprocs);
   MPI_Comm_rank(comm,&procid);
