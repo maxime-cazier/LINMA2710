@@ -22,7 +22,7 @@ int main() {
       double tic = MPI_Wtime();
       MPI_Wait(&rqst, MPI_STATUS_IGNORE);
       double toc = MPI_Wtime();
-      printf("[%d] I have received %ld B in %f sec\n", procid, size, (toc-tic));
+      printf("[%d] I have received %d B in %f sec\n", procid, size, (toc-tic));
     }
   }
   //codesnippet end

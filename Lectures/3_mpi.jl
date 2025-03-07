@@ -104,10 +104,10 @@ Processes that are on the same node share the same `processor_name` (the `hostna
 """
 
 # ╔═╡ a103c5af-42fe-4f8c-b78c-6946895105d7
-md"`num_processes` = $(@bind num_processes Slider(2:8, default = 4, show_value = true))"
+md"`num_processes` = $(@bind procname_num_processes Slider(2:8, default = 2, show_value = true))"
 
 # ╔═╡ b0ca0392-71b8-4f44-8c6c-0978a02a0e6c
-compile_and_run(Example("procname.c"); mpi = true, verbose = 1, show_run_command = true, num_processes)
+compile_and_run(Example("procname.c"); mpi = true, verbose = 1, show_run_command = true, num_processes = procname_num_processes)
 
 # ╔═╡ 21b6133f-db59-4885-9b3d-331c3d6ef306
 frametitle("Compiling")
@@ -432,8 +432,11 @@ Foldable(md"How to collect the partial sums ?", md"`MPI_Reduce`")
 # ╔═╡ 7cf59087-efca-4f03-90dc-f2acefdcbc8a
 frametitle("Let's try it")
 
+# ╔═╡ 4788d8b4-2efa-4489-80c3-71f405513644
+md"`num_processes` = $(@bind sum_num_processes Slider(2:8, default = 2, show_value = true))"
+
 # ╔═╡ 35aa1295-642f-4525-bf19-df2a42ff39d6
-compile_and_run(Example("mpi_sum.c"), mpi = true, num_processes = 4, verbose = 1)
+compile_and_run(Example("mpi_sum.c"), mpi = true, num_processes = sum_num_processes, verbose = 1)
 
 # ╔═╡ e832ce25-94e2-4743-854d-02b52cc7b56d
 aside(Foldable(md"Why is it the first process that gets the sum ?", md"We gave 0 to the 6th argument of `MPI_Reduce`, this decides which node gets the sum."), v_offset = -100)
@@ -749,6 +752,7 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─141d162c-c817-498f-be16-f1cd35d82487
 # ╟─7cf59087-efca-4f03-90dc-f2acefdcbc8a
 # ╟─35aa1295-642f-4525-bf19-df2a42ff39d6
+# ╟─4788d8b4-2efa-4489-80c3-71f405513644
 # ╟─e832ce25-94e2-4743-854d-02b52cc7b56d
 # ╟─79b405a5-54b5-4727-a0cd-b79522ad109f
 # ╟─d2104fbd-ba22-4501-b03a-8809271d598b

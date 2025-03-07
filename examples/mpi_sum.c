@@ -21,7 +21,7 @@ void sum(float *vec, int length, int verbose) {
   float total = 0;
   MPI_Reduce(&local_sum, &total, 1, MPI_FLOAT, MPI_SUM, 0, comm);
   if (verbose >= 1)
-    fprintf(stderr, "proc id : %d / %d : %f -> %f\n", procid, nprocs, local_sum, total);
+    fprintf(stderr, "proc id : %d / %d : [local = %f] : [total = %f]\n", procid, nprocs, local_sum, total);
   //codesnippet end
   MPI_Finalize();
 }
