@@ -652,6 +652,7 @@ srun: job 3491072 has been allocated resources
 ```
 * `$ sbatch submit.sh` : Asynchronous job, get status with
 * `$ squeue --me`
+* More details on the [README](https://github.com/blegat/LINMA2710)
 """, style = Dict("flex-grow" => "1", "margin-right" => "30px")),
 md"""
 $(img("https://upload.wikimedia.org/wikipedia/commons/3/3a/Slurm_logo.svg", :width => "160px", :height => "160px"))
@@ -662,10 +663,129 @@ See [CÉCI documentation](https://support.ceci-hpc.be/doc/_contents/QuickStart/S
 # ╔═╡ 9a100ccf-1ad3-4d2c-bbe0-e297969eb69e
 section("Topology")
 
-# ╔═╡ 921b5a18-0733-4032-a543-9d60e254b1b2
+# ╔═╡ 9612a1ef-fd3a-4a58-87b0-b2255ac86331
+frametitle("Graph diameter")
+
+# ╔═╡ 98392c40-6542-4a26-8552-c0960bbaa6a6
 md"""
-Topology awareness is important, specified in [Slurm's `topology.conf` file](https://slurm.schedmd.com/topology.conf.html).
+* Consider graph ``G`` with nodes ``v`` corresponding to computer nodes or switches.
+* There is an edge ``(u, v) \in E`` if there is an ethernet cable **directly** connecting ``u`` and ``b``.
+*  ``e \in E`` are ethernet cables of bandwidth ``w_e``
+* Distance (unweighted) from node ``i \in V`` to node ``j \in V`` is ``d(G, u, v)``
+  - Does not depend on bandwidth ``w_e`` of edges of the path
 """
+
+# ╔═╡ 49b596b8-891d-4f3f-a6a4-a62cc8237df3
+definition("Graph diameter", md"*Graph diameter* is ``d(G) := \max_{u, v \in V} d(G, u, v)``")
+
+# ╔═╡ c253bb24-ad76-4b58-8dfc-7dc2576e3db5
+frametitle("Bisection bandwidth")
+
+# ╔═╡ 1b617828-e2b2-4a94-a120-59fa533d3e11
+md"""
+Bandwidth ``\texttt{bw}(u, v)`` is the bandwidth of the cable if ``(u, v) \in E``
+or 0 otherwise. Given ``S, T \subseteq V``,
+```math
+\begin{align}
+\text{Width} &\qquad &  w(S, T) & = |\{ (u, v) \in E \mid u \in S, v \in T \}|\\
+\text{Bandwidth} & & \texttt{bw}(S, T) & = \sum_{u\in S, v\not\in S} w(u,v)
+\end{align}
+```
+"""
+
+# ╔═╡ f2ebc6fb-e07c-4922-897d-9bbe0f5fa1d0
+#definition("Bisection bandwidth", 
+hbox([
+	md"""
+The *bisection width* is:
+```math
+\min_{S \subset V : \lfloor |V|/2 \rfloor \le |S| \le \lceil |V|/2 \rceil} \quad w(S, V \setminus S)
+```
+""", Div(html" ",  style = Dict("flex-grow" => "1")),
+	md"""
+The *bisection **band**width* is:
+```math
+\min_{S \subset V : \lfloor |V|/2 \rfloor \le |S| \le \lceil |V|/2 \rceil} \quad \texttt{bw}(S, V \setminus S)
+```
+"""])#)
+
+# ╔═╡ 8da580fe-6b56-4d8f-ad43-aed7b728a06e
+md"""
+* Worst case pairwise communication of two groups ``S`` and ``V \setminus S`` of *almost* (``\pm 1``) equal size.
+* NP-hard to compute for general graphs
+"""
+
+# ╔═╡ fa024a5d-52a6-459d-894d-13a60ec723d2
+Foldable(md"What are the differences with Min-Cut ?",
+md"""
+In Min-Cut, we fix a node in ``S``, a node in ``V \setminus S``
+and the cardinality of `S` is not constrained.
+These differences allow Min-Cut to be solvable in polynomial time.
+""")
+
+# ╔═╡ 360091c4-d3a0-462d-abcf-b9bbb9480871
+frametitle("Linear array")
+
+# ╔═╡ 3dc860be-016d-49ee-8535-7d9457c70f85
+Foldable(md"What is the graph diameter ?", md"``|V| - 1`` if ``u`` and ``v`` are extreme points of the array")
+
+# ╔═╡ 7fc70992-973a-43c6-904a-dd1b622a5ed8
+Foldable(md"What is the bisection width ?", md"""
+The bisection width is 1 : $(img("https://upload.wikimedia.org/wikipedia/commons/7/79/Bisected_linear_array.jpg", :width => "300pt"))
+""")
+
+# ╔═╡ 7d37fbea-baa3-43ec-b003-a4707017a4cf
+frametitle("Rings")
+
+# ╔═╡ 86394e1c-0ff4-449a-8940-4b5906d8b6f0
+Foldable(md"What is the graph diameter ?", md"``|V|/2``")
+
+# ╔═╡ 23bfbe95-7ba2-41b9-bd8b-dc4baa3ad53a
+Foldable(md"What is the bisection width ?", md"""
+The bisection width is 2: 
+$(img("https://upload.wikimedia.org/wikipedia/commons/5/51/Bisected_ring.jpg", :width => "300pt"))
+""")
+
+# ╔═╡ 2257220c-6f0e-4edf-9fea-7e388b84df9b
+frametitle("Multidimensional array and torus")
+
+# ╔═╡ 39b055f5-3dbf-403c-b21e-210e3813d8b0
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/torus.jpeg")
+
+# ╔═╡ 2e4dc3f9-a132-444f-a35d-f583823a7dfd
+Foldable(md"What is the graph diameter of a ``n \times n`` 2D array ?",
+md"""
+It is ``2(n-1)``, attained for opposite vertices of the square.
+$(Foldable(md"What is the bisection width of a ``n^d`` ``d``D array ?",
+md"It is ``d(n-1)``, attained for opposite vertices of the hypercube."))
+""")
+
+# ╔═╡ b68eb860-a5b4-4e9e-9fbf-6eb6ce43ae69
+Foldable(md"What is the bisection width of a ``n \times n`` 2D array ?",
+md"""
+It is ``n = \sqrt{|V|}``:
+$(img("https://upload.wikimedia.org/wikipedia/commons/2/2f/Bisected_mesh.jpg", :width => "300pt"))
+$(Foldable(md"What is the bisection width of a ``n^d`` ``d``D array ?",
+md"It is ``n = \sqrt[d]{|V|}``"))
+""")
+
+# ╔═╡ 2c84bd84-b54d-4594-b9f8-35db2124d7e8
+frametitle("Hypercube")
+
+# ╔═╡ f6f9447c-9bc9-432d-bd80-2c39f9d842f8
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/hypercubes.jpg", :width => "500pt")
+
+# ╔═╡ 143dca7c-f9a4-472a-a4bc-4578e4e8413b
+frametitle("Bisection bandwidth : examples")
+
+# ╔═╡ 3d033a48-09a6-4bd5-a92b-105b8acd4eb7
+grid([
+	img("https://upload.wikimedia.org/wikipedia/commons/7/79/Bisected_linear_array.jpg") img("https://upload.wikimedia.org/wikipedia/commons/5/51/Bisected_ring.jpg")
+	img("https://upload.wikimedia.org/wikipedia/commons/d/da/Bisected_tree.jpg") img("https://upload.wikimedia.org/wikipedia/commons/2/2f/Bisected_mesh.jpg")
+])
+
+# ╔═╡ 31fb6bef-70ad-4d73-8462-2296a8f16e0a
+aside(md"[Source](https://en.wikipedia.org/wiki/Bisection_bandwidth)", v_offset = -300)
 
 # ╔═╡ 10a1b3a7-21c7-4f97-93e1-006ad3aea40d
 frametitle("Butterfly")
@@ -695,6 +815,13 @@ bibrefs(biblio, "eijkhout2017Parallel")
 
 # ╔═╡ 3a50ca06-06e8-4a61-ade2-afbfc52ca655
 aside(md"""See $(bibcite(biblio, "eijkhout2017Parallel", "Section 4.1.4.2"))""", v_offset = -100)
+
+# ╔═╡ 921b5a18-0733-4032-a543-9d60e254b1b2
+md"""
+* Specializing on topology is important for communication libraries like MPI/NCCL. For instance, Deepseek-V3 by-passed NCCL and used PTX directly to hardcode how ther hardware should be used.
+* Specified in [Slurm's `topology.conf` file](https://slurm.schedmd.com/topology.conf.html).
+* Source : $(bibcite(biblio, "eijkhout2010Introduction", "Section 2.7"))
+"""
 
 # ╔═╡ a59db59c-d34e-4abd-8865-9907607e06a8
 aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.27"))""", v_offset = -200)
@@ -785,8 +912,31 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─d8bb1d43-bf42-4a09-bdeb-5db406ef1ccd
 # ╟─9a100ccf-1ad3-4d2c-bbe0-e297969eb69e
 # ╟─921b5a18-0733-4032-a543-9d60e254b1b2
+# ╟─9612a1ef-fd3a-4a58-87b0-b2255ac86331
+# ╟─98392c40-6542-4a26-8552-c0960bbaa6a6
+# ╟─49b596b8-891d-4f3f-a6a4-a62cc8237df3
+# ╟─c253bb24-ad76-4b58-8dfc-7dc2576e3db5
+# ╟─1b617828-e2b2-4a94-a120-59fa533d3e11
+# ╟─f2ebc6fb-e07c-4922-897d-9bbe0f5fa1d0
+# ╟─8da580fe-6b56-4d8f-ad43-aed7b728a06e
+# ╟─fa024a5d-52a6-459d-894d-13a60ec723d2
+# ╟─360091c4-d3a0-462d-abcf-b9bbb9480871
+# ╟─3dc860be-016d-49ee-8535-7d9457c70f85
+# ╟─7fc70992-973a-43c6-904a-dd1b622a5ed8
+# ╟─7d37fbea-baa3-43ec-b003-a4707017a4cf
+# ╟─86394e1c-0ff4-449a-8940-4b5906d8b6f0
+# ╟─23bfbe95-7ba2-41b9-bd8b-dc4baa3ad53a
+# ╟─2257220c-6f0e-4edf-9fea-7e388b84df9b
+# ╟─39b055f5-3dbf-403c-b21e-210e3813d8b0
+# ╟─2e4dc3f9-a132-444f-a35d-f583823a7dfd
+# ╟─b68eb860-a5b4-4e9e-9fbf-6eb6ce43ae69
+# ╟─2c84bd84-b54d-4594-b9f8-35db2124d7e8
+# ╟─f6f9447c-9bc9-432d-bd80-2c39f9d842f8
+# ╟─143dca7c-f9a4-472a-a4bc-4578e4e8413b
+# ╟─3d033a48-09a6-4bd5-a92b-105b8acd4eb7
+# ╟─31fb6bef-70ad-4d73-8462-2296a8f16e0a
 # ╟─10a1b3a7-21c7-4f97-93e1-006ad3aea40d
-# ╟─3ec3c058-a94d-4717-b99f-66373f2fa31d
+# ╠═3ec3c058-a94d-4717-b99f-66373f2fa31d
 # ╟─a59db59c-d34e-4abd-8865-9907607e06a8
 # ╟─21d507f6-02f8-4f8b-84f1-bcb84731df66
 # ╟─4aac6ab5-053a-4f60-9e2e-e8d61ff0cecb
