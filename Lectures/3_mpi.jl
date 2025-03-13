@@ -616,7 +616,7 @@ frametitle("Launching a job")
 # ╔═╡ 944d827e-bc6a-4de8-b959-5fde8790bedc
 md"""
 ```sh
-[local computer]$ ssh lemaitre4
+[laptop]$ ssh lemaitre4
 [blegat@lm4-f001 ~]$ cd LINMA2710/examples
 [blegat@lm4-f001 examples]$ mpicc procname.c
 -bash: mpicc: command not found
@@ -659,6 +659,23 @@ $(img("https://upload.wikimedia.org/wikipedia/commons/3/3a/Slurm_logo.svg", :wid
 See [CÉCI documentation](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html)
 """,
 ])
+
+# ╔═╡ b540d5e3-6686-479a-b2c7-c1f65b85b6ba
+frametitle("Profiling with NVIDIA Nsight Systems")
+
+# ╔═╡ 091dd042-580b-4fda-8086-e048663aed6c
+md"""
+* NVIDIA Nsight Systems $(img("https://developer.download.nvidia.com/images/nvidia-nsight-systems-icon-gbp-shaded-256.png", :width => "20pt")) can provile CUDA code but also MPI
+* Available on `manneback` after loading `CUDA` with $(img("https://github.com/TACC/Lmod/raw/main/logos/2x/Lmod-4color%402x.png", :height => "20px"))
+
+```sh
+[laptop]$ ssh manneback
+[blegat@mbackf1 ~]$ nsys
+-bash: nsys: command not found
+[blegat@mbackf1 ~]$ ml CUDA
+[blegat@mbackf1 ~]$ nsys
+```
+"""
 
 # ╔═╡ 9a100ccf-1ad3-4d2c-bbe0-e297969eb69e
 section("Topology")
@@ -734,8 +751,38 @@ Foldable(md"What is the bisection width ?", md"""
 The bisection width is 1 : $(img("https://upload.wikimedia.org/wikipedia/commons/7/79/Bisected_linear_array.jpg", :width => "300pt"))
 """)
 
+# ╔═╡ c55dcd4a-8438-4679-9c4a-78cceec6835d
+function path(ring::Bool; s = 80, offset = 0.04)
+	off(a, b) = a + sign(b - a) * offset
+	p(i, j) = Point(i * s, j * s)
+	c(m, i, j) = circle(p(i, j), 0.06s, action = :fill)
+	a(i1, j1, i2, j2) = line(p(off(i1, i2), off(j1, j2)), p(off(i2, i1), off(j2, j1)), action = :stroke)
+	function ac(i1, j1, i2, j2, m)
+		a(i1, j1, i2, j2)
+		c(m, i2, j2)
+	end
+	@draw begin
+		c("1", -3, 0)
+		ac(-3, 0, -2, 0, "2")
+		ac(-2, 0, -1, 0, "3")
+		ac(-1, 0, 0, 0, "4")
+		ac(0, 0, 1, 0, "5")
+		if ring
+			move(p(off(1, 0), off(0, -1)))
+			curve(p(off(1, 2), off(0, -1)), p(-1, -1), p(off(-3, -2), off(0, -1)))
+			strokepath()
+		end
+	end 7.5s 1.7s
+end;
+
+# ╔═╡ e44b0038-d68f-4a49-9da2-67fbcbe098c3
+path(false)
+
 # ╔═╡ 7d37fbea-baa3-43ec-b003-a4707017a4cf
 frametitle("Rings")
+
+# ╔═╡ fc705b81-7310-44cc-ad9f-dc2cf8a9b645
+path(true)
 
 # ╔═╡ 86394e1c-0ff4-449a-8940-4b5906d8b6f0
 Foldable(md"What is the graph diameter ?", md"``|V|/2``")
@@ -772,37 +819,101 @@ md"It is ``n = \sqrt[d]{|V|}``"))
 # ╔═╡ 2c84bd84-b54d-4594-b9f8-35db2124d7e8
 frametitle("Hypercube")
 
+# ╔═╡ 4309dc43-aeb8-4ec7-94fe-0e320b784349
+md"Special case of multidimensional array"
+
 # ╔═╡ f6f9447c-9bc9-432d-bd80-2c39f9d842f8
-img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/hypercubes.jpg", :width => "500pt")
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/hypercubes.jpg", :width => "400pt")
+
+# ╔═╡ 1551122c-70ae-4e37-b3fb-4be91fcc4afb
+Foldable(
+md"""
+How to order the nodes so that consecutive nodes in the order are adjacent in the graph ?
+""",
+md"""
+Map nodes to binary number and use [Gray code](https://en.wikipedia.org/wiki/Gray_code).
+$(img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/hypercubenumber.jpg", :width => "300pt"))
+"""
+)
+
+# ╔═╡ e796b093-9c1d-4656-9acb-918de53f7e4d
+frametitle("Crossbar")
+
+# ╔═╡ 97d3cf3f-ddac-4850-8b05-bdc0c4741f61
+Foldable(md"What are the number of switches, edges, graph diameter and bisection width for ``n`` computer nodes ?",
+md"""
+``2n(n-1)`` switches, ``|E| = 4n(n-1)``, diameter is 2 and bisection width is ``n/2``.
+""")
 
 # ╔═╡ 143dca7c-f9a4-472a-a4bc-4578e4e8413b
-frametitle("Bisection bandwidth : examples")
+frametitle("Tree")
 
-# ╔═╡ 3d033a48-09a6-4bd5-a92b-105b8acd4eb7
-grid([
-	img("https://upload.wikimedia.org/wikipedia/commons/7/79/Bisected_linear_array.jpg") img("https://upload.wikimedia.org/wikipedia/commons/5/51/Bisected_ring.jpg")
-	img("https://upload.wikimedia.org/wikipedia/commons/d/da/Bisected_tree.jpg") img("https://upload.wikimedia.org/wikipedia/commons/2/2f/Bisected_mesh.jpg")
-])
+# ╔═╡ e4d1de1d-d57a-48ab-ad7a-c09b427daa03
+Foldable(md"What is the diameter and bisection width of ``n`` computer nodes ?",
+md"""
+Diameter is ``2\log_2(n)`` and bisection width is 1.
+$(img("https://upload.wikimedia.org/wikipedia/commons/d/da/Bisected_tree.jpg") )
+""")
 
-# ╔═╡ 31fb6bef-70ad-4d73-8462-2296a8f16e0a
-aside(md"[Source](https://en.wikipedia.org/wiki/Bisection_bandwidth)", v_offset = -300)
+# ╔═╡ 954f1ab1-1e2f-458b-96d7-a1746631fac7
+function tree(; s = 80, offset = 0.04)
+	off(a, b) = a + sign(b - a) * offset
+	p(i, j) = Point(i * s, j * s)
+	c(i, j; kws...) = circle(p(i, j), 0.06s; kws...)
+	a(i1, j1, i2, j2) = line(p(off(i1, i2), off(j1, j2)), p(off(i2, i1), off(j2, j1)), action = :stroke)
+	function ac(i1, j1, i2, j2; kws...)
+		a(i1, j1, i2, j2)
+		c(i2, j2; kws...)
+	end
+	@draw begin
+		c(0, -1, action = :stroke)
+		ac(0, -1, -2, 0, action = :stroke)
+		ac(0, -1, 2, 0, action = :stroke)
+		ac(-2, 0, -3, 1, action = :fill)
+		ac(-2, 0, -1, 1, action = :fill)
+		ac(2, 0, 3, 1, action = :fill)
+		ac(2, 0, 1, 1, action = :fill)
+		c(2.8, -0.9, action = :stroke)
+		c(2.8, -0.7, action = :fill)
+		text("Switch", p(3, -0.9), valign = :middle)
+		text("Computer node", p(3, -0.7), valign = :middle)
+	end 8s 3s
+end;
 
-# ╔═╡ 10a1b3a7-21c7-4f97-93e1-006ad3aea40d
-frametitle("Butterfly")
-
-# ╔═╡ 3ec3c058-a94d-4717-b99f-66373f2fa31d
-img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/butterflys.jpeg")
+# ╔═╡ 1bac238f-79c8-4f9f-a187-bacb288de3b0
+tree()
 
 # ╔═╡ 21d507f6-02f8-4f8b-84f1-bcb84731df66
 frametitle("Fat-tree")
 
 # ╔═╡ 4aac6ab5-053a-4f60-9e2e-e8d61ff0cecb
-img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/fattree5.jpg")
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/fattree5.jpg", :width => "500pt")
 
 # ╔═╡ b53ec488-ff25-4647-ab00-fbf90963a795
 md"""
 *blocking factor* : Ratio between upper links and lower links. Ratio is 1 for fat-tree to prevent bottlenecks if all nodes start communicating.
 """
+
+# ╔═╡ de72d596-0daf-4629-bbb5-20bb8a67cbed
+Foldable(md"What is the number of edges ? What is the bisection width ?",
+md"""
+Number of edges is ``n\log_2(n)`` and bisection width is ``n/2``.
+""")
+
+# ╔═╡ 10a1b3a7-21c7-4f97-93e1-006ad3aea40d
+frametitle("Butterfly")
+
+# ╔═╡ f7f097cb-d7bd-49eb-a030-ac26f8f61a67
+md"Fat-tree need large switches, alternative is butterfly network:"
+
+# ╔═╡ 3ec3c058-a94d-4717-b99f-66373f2fa31d
+img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/butterflys.jpeg")
+
+# ╔═╡ 6041a909-d26c-4ab1-836b-29953c578759
+Foldable(md"What is the number of edges ? What is the bisection width ?",
+md"""
+Same as fat-tree.
+""")
 
 # ╔═╡ 972b8af7-5e4d-4236-8875-016d1ed5b535
 Pkg.instantiate()
@@ -828,6 +939,19 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.27"))"""
 
 # ╔═╡ f2417047-33fc-4489-8e89-115bc6b46c13
 aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))""", v_offset = -200)
+
+# ╔═╡ 1152dec8-3810-42b1-bb2a-8755dcaef56c
+img1(f, args...) = img("https://raw.githubusercontent.com/VictorEijkhout/TheArtOfHPC_vol1_scientificcomputing/refs/heads/main/booksources/graphics/$f", args...)
+
+# ╔═╡ d04b9af5-f004-4ca4-b1c9-2c86d46cb37d
+hbox([
+Div(md"""
+* Each dot is a node
+* Each intersection is a switch
+$(Foldable("What is the underlying graph between nodes", "Complete directed graph"))
+""", style = Dict("flex-grow" => "1")),
+img1("crossbar.jpg"),
+])
 
 # ╔═╡ Cell order:
 # ╟─58e12afd-6eb0-4731-bd57-d9ae7ab4e164
@@ -910,6 +1034,8 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─3a2bfd4e-0ce6-4a79-a578-fc1b4ef563c5
 # ╟─beee4908-d519-413a-964f-149bb82cdbb8
 # ╟─d8bb1d43-bf42-4a09-bdeb-5db406ef1ccd
+# ╟─b540d5e3-6686-479a-b2c7-c1f65b85b6ba
+# ╟─091dd042-580b-4fda-8086-e048663aed6c
 # ╟─9a100ccf-1ad3-4d2c-bbe0-e297969eb69e
 # ╟─921b5a18-0733-4032-a543-9d60e254b1b2
 # ╟─9612a1ef-fd3a-4a58-87b0-b2255ac86331
@@ -921,9 +1047,12 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─8da580fe-6b56-4d8f-ad43-aed7b728a06e
 # ╟─fa024a5d-52a6-459d-894d-13a60ec723d2
 # ╟─360091c4-d3a0-462d-abcf-b9bbb9480871
+# ╟─e44b0038-d68f-4a49-9da2-67fbcbe098c3
 # ╟─3dc860be-016d-49ee-8535-7d9457c70f85
 # ╟─7fc70992-973a-43c6-904a-dd1b622a5ed8
+# ╟─c55dcd4a-8438-4679-9c4a-78cceec6835d
 # ╟─7d37fbea-baa3-43ec-b003-a4707017a4cf
+# ╟─fc705b81-7310-44cc-ad9f-dc2cf8a9b645
 # ╟─86394e1c-0ff4-449a-8940-4b5906d8b6f0
 # ╟─23bfbe95-7ba2-41b9-bd8b-dc4baa3ad53a
 # ╟─2257220c-6f0e-4edf-9fea-7e388b84df9b
@@ -931,19 +1060,29 @@ aside(md"""From $(bibcite(biblio, "eijkhout2010Introduction", "Figure 2.30"))"""
 # ╟─2e4dc3f9-a132-444f-a35d-f583823a7dfd
 # ╟─b68eb860-a5b4-4e9e-9fbf-6eb6ce43ae69
 # ╟─2c84bd84-b54d-4594-b9f8-35db2124d7e8
+# ╟─4309dc43-aeb8-4ec7-94fe-0e320b784349
 # ╟─f6f9447c-9bc9-432d-bd80-2c39f9d842f8
+# ╟─1551122c-70ae-4e37-b3fb-4be91fcc4afb
+# ╟─e796b093-9c1d-4656-9acb-918de53f7e4d
+# ╟─d04b9af5-f004-4ca4-b1c9-2c86d46cb37d
+# ╟─97d3cf3f-ddac-4850-8b05-bdc0c4741f61
 # ╟─143dca7c-f9a4-472a-a4bc-4578e4e8413b
-# ╟─3d033a48-09a6-4bd5-a92b-105b8acd4eb7
-# ╟─31fb6bef-70ad-4d73-8462-2296a8f16e0a
-# ╟─10a1b3a7-21c7-4f97-93e1-006ad3aea40d
-# ╠═3ec3c058-a94d-4717-b99f-66373f2fa31d
-# ╟─a59db59c-d34e-4abd-8865-9907607e06a8
+# ╟─1bac238f-79c8-4f9f-a187-bacb288de3b0
+# ╟─e4d1de1d-d57a-48ab-ad7a-c09b427daa03
+# ╟─954f1ab1-1e2f-458b-96d7-a1746631fac7
 # ╟─21d507f6-02f8-4f8b-84f1-bcb84731df66
 # ╟─4aac6ab5-053a-4f60-9e2e-e8d61ff0cecb
 # ╟─b53ec488-ff25-4647-ab00-fbf90963a795
+# ╟─de72d596-0daf-4629-bbb5-20bb8a67cbed
+# ╟─10a1b3a7-21c7-4f97-93e1-006ad3aea40d
+# ╟─f7f097cb-d7bd-49eb-a030-ac26f8f61a67
+# ╟─3ec3c058-a94d-4717-b99f-66373f2fa31d
+# ╟─6041a909-d26c-4ab1-836b-29953c578759
+# ╟─a59db59c-d34e-4abd-8865-9907607e06a8
 # ╟─f2417047-33fc-4489-8e89-115bc6b46c13
 # ╟─82e1ea5e-f8e0-11ef-0f93-49a66050feaf
 # ╟─972b8af7-5e4d-4236-8875-016d1ed5b535
 # ╟─8df4ff2f-d176-4b4e-a525-665b5d07ea52
 # ╟─a55c5090-1455-4fb9-bdb9-a0b9b340b154
 # ╟─9d0c7847-a76f-42a0-b73c-0aed1c58d87a
+# ╟─1152dec8-3810-42b1-bb2a-8755dcaef56c

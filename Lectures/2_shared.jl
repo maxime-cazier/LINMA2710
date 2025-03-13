@@ -40,6 +40,12 @@ begin
     img(file)
 end
 
+# ╔═╡ 655d59f3-665b-410b-b534-afadae96295b
+aside(md"Try it on your laptop!
+```sh
+$ lstopo
+```", v_offset = -200)
+
 # ╔═╡ 37d9b5f0-48b6-4ff3-873d-592230687995
 frametitle("Hierarchy")
 
@@ -480,6 +486,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.2
 # ╟─8a51b9c5-8888-4578-ae40-cf906ec9b5fa
 # ╟─3887824b-7c7f-4c24-bf6d-7a55ed7adc89
 # ╟─dbe9c6d8-611e-46f9-9a8e-2b3647e813fa
+# ╟─655d59f3-665b-410b-b534-afadae96295b
 # ╟─37d9b5f0-48b6-4ff3-873d-592230687995
 # ╟─138caa9b-1d53-4c01-a3b9-c1a097413736
 # ╟─81465bf1-8e54-461f-892c-2769bf94fdfe
