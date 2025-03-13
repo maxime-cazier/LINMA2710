@@ -32,41 +32,35 @@ If you don't already have an account (if you don't know whether you have an acco
 You will receive an email, follow the link in the email and in the field labelled "Email of Supervising Professor", enter `benoit.legat@uclouvain.be`.
 Follow the steps detailed [here](https://support.ceci-hpc.be/doc/_contents/QuickStart/ConnectingToTheClusters/index.html) in order to download your private key, create the corresponding public key and create the file `.ssh/config`.
 
-Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/TransferringFilesEffectively.html) to copy the notebook as well as the three scripts `install.sh`, `load.sh`, `notebook.sh` and `submit.sh` from your computer to the cluster. For instance, with `scp` you can copy the notebook from your computer with:
-```sh
-(your computer) $ scp gan.ipynb manneback:.
-```
-and copy the scripts to the cluster with:
-```sh
-(your computer) $ scp install.sh load.sh notebook.sh submit.sh manneback:.
-```
-
 You should now be able to connect to the manneback cluster with
 ```sh
 (your computer) $ ssh manneback
 ```
 
-Start by installing the dependencies using (you should do this only once, not everytime you connect to the cluster):
+Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/TransferringFilesEffectively.html) to copy files from your computer to the cluster. For instance, with `scp` you can copy a file `submit.sh` from your computer with:
 ```sh
-(manneback cluster) $ bash install.sh
+(your computer) $ scp submit.sh manneback:.
 ```
+It might however be a bit tedious to keep the files in sync with `scp`. I recommend pushing your project in a **private** (don't use a public git as your code shouldn't be accessible to other students!) git (for instance in https://forge.uclouvain.be/) and pull it from the CECI cluster. You can then easily update the code on the CECI cluster with `git pull`.
+**Important** do not sync the binaries of with the CECI cluster as you might have a different architecture. Exclude them from the git by adding them in the `.gitignore` file and simply recompile them on the cluster.
 
-In order to provide more resources to JupyterLab, [submit the job `bash notebook.sh` with Slurm](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html).
-The file `submit.sh` gives an example of submission script to use to request a GPU (see [here](https://www.ceci-hpc.be/scriptgen.html) for a helper for writing your own submission script). You can use it with
+To run your code, [submit a job with Slurm](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html).
+The file `examples/submit.sh` gives an example of submission script to use (see [here](https://www.ceci-hpc.be/scriptgen.html) for a helper for writing your own submission script). You can use it with
 ```sh
 (manneback cluster) $ sbatch submit.sh
-```
+```ion 
 The output produced by the job is written in the file `slurm-<JOBID>.out` where `<JOBID>` is the job id listed in the `JOBID` column of the table outputted by
 ```sh
 (manneback cluster) $ squeue --me
 ```
-At the end of the file, you should copy-paste the url given by Jupyter as you will need you give this url (appended with `/24`) to `sshuttle` in the next step.
-Now, follow the instructions [here](https://support.ceci-hpc.be/doc/_contents/UsingSoftwareAndLibraries/Jupyter/index.html#connect-to-the-jupyterhub-interface) to use this instance of JupyterLab from a web browser of your computer.
 
-Note that if you do `(manneback cluster) $ bash notebook.sh` directly without using `sbatch` or `srun`, the notebook will run on the *login node* which has limited resources as it is only meant for you to connect and send jobs via Slurm that are executed on *compute nodes*, you will also not have any GPU on the login node.
+Note that if you do `(manneback cluster) $ ./a.out` directly without using `sbatch` or `srun`, the notebook will run on the *login node* which has limited resources as it is only meant for you to connect and send jobs via Slurm that are executed on *compute nodes*, you will also not have any GPU on the login node.
+
+If you use `srun` directly without using `sbatch`, the output will be displayed directly on the terminal and not to a `slurm-<JOBID>.out` file.
+This means that you will loose the output if you loose the `ssh` connection (which can easily happen, e.g., if you laptop is suspended).
+One very useful trick is to use `screen`. If your `ssh` connection is lost, simply reconnect and run `screen -r` to get your session back. More details [here](https://linuxize.com/post/how-to-use-linux-screen/).
 
 ## Julia
-
 
 **Do not** use `module load CUDA`. This command uses [Lmod](https://github.com/TACC/Lmod) to set `LD_LIBRARY_PATH` (as detailed in the output of `module show CUDA`) [which is discouraged](https://github.com/JuliaGPU/CUDA.jl/issues/1755).
 

@@ -813,7 +813,7 @@ md"""
 It is ``n = \sqrt{|V|}``:
 $(img("https://upload.wikimedia.org/wikipedia/commons/2/2f/Bisected_mesh.jpg", :width => "300pt"))
 $(Foldable(md"What is the bisection width of a ``n^d`` ``d``D array ?",
-md"It is ``n = \sqrt[d]{|V|}``"))
+md"It is 1 for ``d = 1``, ``n`` for ``d = 2`` and ``n^2`` for ``d = 3``. In general, it is ``n^{-1} = |V|^{(d-1)/d}``"))
 """)
 
 # ╔═╡ 2c84bd84-b54d-4594-b9f8-35db2124d7e8
