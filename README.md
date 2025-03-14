@@ -37,6 +37,8 @@ You should now be able to connect to the manneback cluster with
 (your computer) $ ssh manneback
 ```
 
+In addition to the information below and the CECI documentation [here is a little FAQ](https://docs.google.com/document/d/1CgwDDCUR7tAVCu2MmsscXV-KDEK3UhtOHoCFaztm0-s/edit?usp=sharing).
+
 ### Syncing your files
 
 Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/TransferringFilesEffectively.html) to copy files from your computer to the cluster. For instance, with `scp` you can copy a file `submit.sh` from your computer with:
