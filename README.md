@@ -37,6 +37,8 @@ You should now be able to connect to the manneback cluster with
 (your computer) $ ssh manneback
 ```
 
+### Syncing your files
+
 Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/TransferringFilesEffectively.html) to copy files from your computer to the cluster. For instance, with `scp` you can copy a file `submit.sh` from your computer with:
 ```sh
 (your computer) $ scp submit.sh manneback:.
@@ -44,21 +46,57 @@ Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/Tran
 It might however be a bit tedious to keep the files in sync with `scp`. I recommend pushing your project in a **private** (don't use a public git as your code shouldn't be accessible to other students!) git (for instance in https://forge.uclouvain.be/) and pull it from the CECI cluster. You can then easily update the code on the CECI cluster with `git pull`.
 **Important** do not sync the binaries of with the CECI cluster as you might have a different architecture. Exclude them from the git by adding them in the `.gitignore` file and simply recompile them on the cluster.
 
+### Submit a job
+
+The command that you run directly after connecting with `ssh` are run on the *login node* which has limited resources as it is only meant for you to connect and send jobs via Slurm that are executed on *compute nodes*, you will also not have any GPU on the login node. So **don't** just run your program with `[blegat@mbackf1 ~] ./a.out` (note `mbackf1` which means you are on a login node).
+
+#### Using `sbatch`
+
 To run your code, [submit a job with Slurm](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html).
 The file `examples/submit.sh` gives an example of submission script to use (see [here](https://www.ceci-hpc.be/scriptgen.html) for a helper for writing your own submission script). You can use it with
 ```sh
-(manneback cluster) $ sbatch submit.sh
+[blegat@mbackf1 ~] sbatch submit.sh
 ```ion 
 The output produced by the job is written in the file `slurm-<JOBID>.out` where `<JOBID>` is the job id listed in the `JOBID` column of the table outputted by
 ```sh
-(manneback cluster) $ squeue --me
+[blegat@mbackf1 ~] squeue --me
 ```
 
-Note that if you do `(manneback cluster) $ ./a.out` directly without using `sbatch` or `srun`, the notebook will run on the *login node* which has limited resources as it is only meant for you to connect and send jobs via Slurm that are executed on *compute nodes*, you will also not have any GPU on the login node.
+#### Using `salloc`
 
-If you use `srun` directly without using `sbatch`, the output will be displayed directly on the terminal and not to a `slurm-<JOBID>.out` file.
-This means that you will loose the output if you loose the `ssh` connection (which can easily happen, e.g., if you laptop is suspended).
-One very useful trick is to use `screen`. If your `ssh` connection is lost, simply reconnect and run `screen -r` to get your session back. More details [here](https://linuxize.com/post/how-to-use-linux-screen/).
+You can also use `salloc` to be able to execute commands interactively in the allocated compute nodes.
+```sh
+[blegat@mbackf1 ~]$ salloc --ntasks=4
+salloc: Pending job allocation 56630153
+salloc: job 56630153 queued and waiting for resources
+salloc: job 56630153 has been allocated resources
+salloc: Granted job allocation 56630153
+salloc: Waiting for resource configuration
+salloc: Nodes mb-sky002 are ready for job
+[blegat@mb-sky002 examples]$ ml OpenMPI
+[blegat@mb-sky002 examples]$ srun ./a.out
+Process 3/4 is running on node <<mb-sky002.cism.ucl.ac.be>>
+Process 0/4 is running on node <<mb-sky002.cism.ucl.ac.be>>
+Process 1/4 is running on node <<mb-sky002.cism.ucl.ac.be>>
+Process 2/4 is running on node <<mb-sky002.cism.ucl.ac.be>>
+```
+
+Note that the output will be displayed directly on the terminal and not to a `slurm-<JOBID>.out` file.
+This means that, if you loose the `ssh` connection (which can easily happen, e.g., if you laptop is suspended),
+you will loose the ability to interact with the allocated session on the compute nodes (you could also use `sattach` to reattach it) and also the output of the terminal.
+One useful trick is to use `screen`. If your `ssh` connection is lost, simply reconnect and run `screen -r` to get your session back. More details [here](https://linuxize.com/post/how-to-use-linux-screen/).
+
+#### Using `srun`
+
+The command lines that are either executed in the shell opened by `salloc` or that are inside the `submit.sh` script executed by `sbatch` are each using only one process.
+To allocate several processes for one command, use `srun`. The `srun` commands inherits from the options passed to `salloc` and `sbatch` so no need to repeat the `--ntasks` options etc... for `srun`.
+
+#### Don't mix it with `mpiexec`
+
+When using MPI, you would like to run your executable with several processes.
+For this, you typically use `mpiexec` when running it on your laptop.
+Inside a `salloc` shell or inside a `sbatch` `submit.sh` script, either use `srun` ([recommended by Slurm](https://slurm.schedmd.com/mpi_guide.html#open_mpi)), `mpirun` ([recommended by OpenMPI](https://docs.open-mpi.org/en/main/launching-apps/slurm.html)), or `mpiexec` [which is mostly equivalent to `mpirun`](https://stackoverflow.com/questions/25287981/mpiexec-vs-mpirun).
+Don't use both (e.g., `srun mpirun ./a.out`) as otherwise `srun` will run `ntasks` times `mpirun` which will run with `ntasks` processes, which is not what you want.
 
 ## Julia
 
