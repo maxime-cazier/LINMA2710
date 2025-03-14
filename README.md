@@ -95,7 +95,7 @@ To allocate several processes for one command, use `srun`. The `srun` commands i
 
 When using MPI, you would like to run your executable with several processes.
 For this, you typically use `mpiexec` when running it on your laptop.
-Inside a `salloc` shell or inside a `sbatch` `submit.sh` script, either use `srun` ([recommended by Slurm](https://slurm.schedmd.com/mpi_guide.html#open_mpi)), `mpirun` ([recommended by OpenMPI](https://docs.open-mpi.org/en/main/launching-apps/slurm.html)), or `mpiexec` [which is mostly equivalent to `mpirun`](https://stackoverflow.com/questions/25287981/mpiexec-vs-mpirun).
+Inside a `salloc` shell or inside a `sbatch` `submit.sh` script, either use `srun` ([recommended by Slurm](https://slurm.schedmd.com/mpi_guide.html#open_mpi)), `mpirun` ([recommended by OpenMPI](https://docs.open-mpi.org/en/main/launching-apps/slurm.html)), or `mpiexec` [which is mostly equivalent to `mpirun`](https://stackoverflow.com/questions/25287981/mpiexec-vs-mpirun). See also [the CECI doc](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html#slurm-tasks).
 Don't use both (e.g., `srun mpirun ./a.out`) as otherwise `srun` will run `ntasks` times `mpirun` which will run with `ntasks` processes, which is not what you want.
 
 ## Julia
