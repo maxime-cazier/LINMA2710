@@ -43,6 +43,9 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-pluto_state_cache-v2-${{ hashFiles('**/Project.toml', '**/Manifest.toml', '.github/workflows/*' ) }}
 
+            - name: Ignore notebook state cache in export
+              run: echo 'pluto_state_cache' >> .gitignore
+
             - name: Install LLVM OpenMP runtime
               shell: bash {0}
               run: |
@@ -61,7 +64,8 @@ jobs:
                 julia -e 'using Pkg
                   Pkg.activate(mktempdir())
                   Pkg.add([
-                    Pkg.PackageSpec(name="PlutoSliderServer", version="0.3.2-0.3"),
+                    Pkg.PackageSpec(name="PlutoSliderServer", version="1"),
+                    Pkg.PackageSpec(name="PlutoPDF", version="1"),
                   ])
 
                   import PlutoSliderServer
@@ -71,7 +75,10 @@ jobs:
                     Export_baked_notebookfile=false,
                     Export_baked_state=false,
                     # more parameters can go here
-                  )'
+                  )
+
+                  include("Lectures/MyUtils/scripts/generate_pdf.jl")'
+
 
             - name: Deploy to gh-pages
               uses: JamesIves/github-pages-deploy-action@releases/v4
