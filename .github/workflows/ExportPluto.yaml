@@ -65,7 +65,6 @@ jobs:
                   Pkg.activate(mktempdir())
                   Pkg.add([
                     Pkg.PackageSpec(name="PlutoSliderServer", version="1"),
-                    Pkg.PackageSpec(name="PlutoPDF", version="1"),
                   ])
 
                   import PlutoSliderServer
@@ -75,10 +74,17 @@ jobs:
                     Export_baked_notebookfile=false,
                     Export_baked_state=false,
                     # more parameters can go here
-                  )
+                  )'
 
+            - name: Pdf exports
+              continue-on-error: true # See https://github.com/JuliaPluto/PlutoPDF.jl/issues/18#issuecomment-2729959525
+              run: |
+                julia -e 'using Pkg
+                  Pkg.activate(mktempdir())
+                  Pkg.add([
+                    Pkg.PackageSpec(name="PlutoPDF", version="1"),
+                  ])
                   include("Lectures/MyUtils/scripts/generate_pdf.jl")'
-
 
             - name: Deploy to gh-pages
               uses: JamesIves/github-pages-deploy-action@releases/v4
