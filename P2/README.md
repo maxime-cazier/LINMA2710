@@ -28,7 +28,7 @@ Note that your implementation of `DistributedMatrix` is used to train a neural n
 
 ## Guidelines
 
- - **Deadline**: The deadline is the Thursday 11th April 23h59.
+ - **Deadline**: The deadline is the Thursday 10th April 23h59.
  - **Fraud**:  As always for this course, you must do all the writing (report, code) <ins>individually</ins>. Never share your production. However, you are allowed, and even encouraged, to exchange ideas on how to address the assignment.
  - **Plagiarism**: As always, you must cite all your sources.
  - **Report Submission**: Using the Moodle assignment activity, submit your report in a file called `Report_Project_2_FirstName_LastName.pdf`. The report should be short (maximum 2 pages for the text, the tables and images can be in additional pages) and should include answers to the questions.
