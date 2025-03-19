@@ -107,7 +107,7 @@ Processes that are on the same node share the same `processor_name` (the `hostna
 md"`num_processes` = $(@bind procname_num_processes Slider(2:8, default = 2, show_value = true))"
 
 # ╔═╡ b0ca0392-71b8-4f44-8c6c-0978a02a0e6c
-compile_and_run(Example("procname.c"); mpi = true, verbose = 1, show_run_command = true, num_processes = procname_num_processes)
+compile_and_run(Example("MPI/procname.c"); mpi = true, verbose = 1, show_run_command = true, num_processes = procname_num_processes)
 
 # ╔═╡ 21b6133f-db59-4885-9b3d-331c3d6ef306
 frametitle("Compiling")
@@ -436,7 +436,7 @@ frametitle("Let's try it")
 md"`num_processes` = $(@bind sum_num_processes Slider(2:8, default = 2, show_value = true))"
 
 # ╔═╡ 35aa1295-642f-4525-bf19-df2a42ff39d6
-compile_and_run(Example("mpi_sum.c"), mpi = true, num_processes = sum_num_processes, verbose = 1)
+compile_and_run(Example("MPI/mpi_sum.c"), mpi = true, num_processes = sum_num_processes, verbose = 1)
 
 # ╔═╡ e832ce25-94e2-4743-854d-02b52cc7b56d
 aside(Foldable(md"Why is it the first process that gets the sum ?", md"We gave 0 to the 6th argument of `MPI_Reduce`, this decides which node gets the sum."), v_offset = -100)
@@ -464,7 +464,7 @@ The network cannot buffer the whole message (unless it is short). The sender nee
 frametitle("Example")
 
 # ╔═╡ ce7bf747-7116-4e76-9004-f234317046c3
-compile_and_run(Example("mpi_bench1.c"), mpi = true, num_processes = 2)
+compile_and_run(Example("MPI/mpi_bench1.c"), mpi = true, num_processes = 2)
 
 # ╔═╡ d7e31ced-4eb2-4221-b83f-462e8f32fe89
 aside(Foldable(md"Is this timing bandwith accurately ?",
@@ -503,7 +503,7 @@ md"""
 frametitle("Example")
 
 # ╔═╡ 26aa369f-e5c7-4fe5-8b6b-903f4f4e91ba
-compile_and_run(Example("mpi_bench2.c"), mpi = true, num_processes = 2)
+compile_and_run(Example("MPI/mpi_bench2.c"), mpi = true, num_processes = 2)
 
 # ╔═╡ a79c410a-bebf-434c-9730-568e0ff4f4c7
 section("Consortium des Équipements de Calcul Intensif (CÉCI)")
