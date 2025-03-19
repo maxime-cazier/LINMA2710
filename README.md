@@ -51,11 +51,16 @@ It might however be a bit tedious to keep the files in sync with `scp`. I recomm
 ### Submit a job
 
 The command that you run directly after connecting with `ssh` are run on the *login node* which has limited resources as it is only meant for you to connect and send jobs via Slurm that are executed on *compute nodes*, you will also not have any GPU on the login node. So **don't** just run your program with `[blegat@mbackf1 ~] ./a.out` (note `mbackf1` which means you are on a login node).
+To run your code, [submit a job with Slurm](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html).
 
 #### Using `sbatch`
 
-To run your code, [submit a job with Slurm](https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html).
-The file `examples/submit.sh` gives an example of submission script to use (see [here](https://www.ceci-hpc.be/scriptgen.html) for a helper for writing your own submission script). You can use it with
+Use [this tool](https://www.ceci-hpc.be/scriptgen.html) to generate a submission script.
+
+> [!WARNING]
+> The `--partition` option is dependent on the the cluster. As `manneback` is not an option in the tool, use another cluster and then remove the line with `--partition`.
+
+Save this script as a file, say `submit.sh`. You can then use it with
 ```sh
 [blegat@mbackf1 ~] sbatch submit.sh
 ```ion 
