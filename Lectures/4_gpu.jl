@@ -75,6 +75,9 @@ Similar to LLVM IR : Intermediate representation for accelerated computation.
 # ╔═╡ a48fb960-3a78-435f-9167-78d831667252
 img("https://www.khronos.org/assets/uploads/apis/2024-spirv-language-ecosystem.jpg")
 
+# ╔═╡ 2cfe65d7-669f-426e-af8a-473bc5f36318
+frametitle("Hierarchy")
+
 # ╔═╡ adf26494-b700-4867-8c74-f8d520bbd29d
 hbox([
 	md"""
@@ -87,6 +90,9 @@ hbox([
 """,
 	img("https://upload.wikimedia.org/wikipedia/de/9/96/Platform_architecture_2009-11-08.svg", :width => "400pt"),
 ])
+
+# ╔═╡ 11444947-ce05-47c2-8f84-8ed3af3d8665
+frametitle("Memory")
 
 # ╔═╡ f161cf4d-f516-4db8-a54f-c757f50d4d83
 img("https://upload.wikimedia.org/wikipedia/de/d/d1/OpenCL_Memory_model.svg")
@@ -107,8 +113,65 @@ OpenCL.versioninfo()
 # ╔═╡ 05372b0b-f03c-4b50-99c2-51559da18137
 md"See also `clinfo` command line tool and `examples/OpenCL/common/device_info.c`."
 
+# ╔═╡ 7c6a4307-610b-461e-b63a-e1b10fade204
+frametitle("Important stats")
+
+# ╔═╡ bcd452a4-4705-42b5-9bb0-8e0584973c93
+hbox([
+	(@bind info_platform Select([p => p.name for p in cl.platforms()])),
+	Div(html" "; style = Dict("flex-grow" => "1")),
+	(@bind info_device Select([d => d.name for d in cl.devices(info_platform)])),
+])
+
+# ╔═╡ ff473748-ed4a-4cef-9681-10ba978a3525
+md"""
+* Platform
+  - name: $(info_platform.name)
+  - profile: $(info_platform.profile)
+  - vendor: $(info_platform.vendor)
+  - version: $(info_platform.version)
+* Device
+  - name: $(info_device.name)
+  - type: $(info_device.device_type)
+  - memory size: $(div(info_device.global_mem_size, 1024^2)) MB
+  - max mem alloc size: $(div(info_device.max_mem_alloc_size, 1024^2)) MB
+  - max clock freq: $(info_device.max_clock_frequency) MHz
+  - max compute units: $(info_device.max_compute_units)
+  - max work group size: $(info_device.max_work_group_size)
+  - max work item size: $(info_device.max_work_item_size)
+"""
+
+# ╔═╡ 7f24b243-c4d0-4ff7-9289-74eafcd6b617
+frametitle("Vectorized sum")
+
+# ╔═╡ 4487eb86-89c4-4d95-96c2-183d564aafd9
+hbox([
+	(@bind vadd_platform Select([p => p.name for p in cl.platforms()])),
+	Div(html" "; style = Dict("flex-grow" => "1")),
+	(@bind vadd_device Select([d => d.name for d in cl.devices(vadd_platform)])),
+])
+
+# ╔═╡ e176f74e-b1c7-42fd-b150-966ef2c59835
+vadd_source = code(Example("OpenCL/vadd/vadd.cl"));
+
+# ╔═╡ 4c46552d-b876-4bd8-86c3-176a377e093c
+vadd_kernel = cl.Kernel(cl.Program(; source = vadd_source.code) |> cl.build!, "vadd")
+
+# ╔═╡ 8bcfca40-b4b6-4ef6-94a9-dbdba8b6ca7b
+
+
+# ╔═╡ 4c9385f7-9116-44f8-b3ff-de4e1b82fbc7
+aside(codesnippet(vadd_source), v_offset = -400)
+
 # ╔═╡ ee9ca02c-d431-4194-ba96-67a855d0f7b1
 frametitle("Mandelbrot")
+
+# ╔═╡ 6c0e8029-0cae-493e-b59b-7bc6c92c6aed
+hbox([
+	(@bind mandel_platform Select([p => p.name for p in cl.platforms()])),
+	Div(html" "; style = Dict("flex-grow" => "1")),
+	(@bind mandel_device Select([d => d.name for d in cl.devices(mandel_platform)])),
+])
 
 # ╔═╡ 3e0f2c68-c766-4277-8e3b-8ada91050aa3
 hbox([
@@ -125,40 +188,6 @@ mandel_source = code(Example("OpenCL/mandelbrot/mandel.cl"));
 
 # ╔═╡ 81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
 aside(codesnippet(mandel_source), v_offset = -400)
-
-# ╔═╡ d49864e2-4643-4bb4-8fed-b53a3b5f2dcb
-function platform_device_select()
-	p = @bind platform Select([p => p.name for p in cl.platforms()])
-	d = @bind device Select([d => d.name for d in cl.devices(platform)])
-	return platform, device, hbox([
-		p,
-		Div(html" "; style = Dict("flex-grow" => "1")),
-		d,
-	])
-end
-
-# ╔═╡ ff473748-ed4a-4cef-9681-10ba978a3525
-md"""
-* Platform
-  - name: $(platform.name)
-  - profile: $(platform.profile)
-  - vendor: $(platform.vendor)
-  - version: $(platform.version)
-* Device
-  - name: $(device.name)
-  - type: $(device.device_type)
-  - memory size: $(div(device.global_mem_size, 1024^2)) MB
-  - max mem alloc size: $(div(device.max_mem_alloc_size, 1024^2)) MB
-  - max clock freq: $(device.max_clock_frequency) MHz
-  - max compute units: $(device.max_compute_units)
-  - max work group size: $(device.max_work_group_size)
-  - max work item size: $(device.max_work_item_size)
-"""
-
-# ╔═╡ d92bef71-976a-42dd-81ca-5c298697f2e2
-#=╠═╡
-mandel_select
-  ╠═╡ =#
 
 # ╔═╡ 3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
 function mandel_opencl(q::Array{ComplexF32}, maxiter::Int64)
@@ -178,6 +207,17 @@ end
 # ╔═╡ 02a4d1b9-b8ec-4fd5-84fa-4cf67d947419
 mandel_image = @time mandel_opencl(q, maxiter);
 
+# ╔═╡ d49864e2-4643-4bb4-8fed-b53a3b5f2dcb
+function platform_device_select()
+	p = @bind platform Select([p => p.name for p in cl.platforms()])
+	d = @bind device Select([d => d.name for d in cl.devices(platform)])
+	return platform, device, hbox([
+		p,
+		Div(html" "; style = Dict("flex-grow" => "1")),
+		d,
+	])
+end
+
 # ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
 Pkg.instantiate()
 
@@ -186,19 +226,6 @@ import CairoMakie # not `using`  as `Slider` collides with PlutoUI
 
 # ╔═╡ ed8bf827-d280-4c80-9518-ddb35614daaa
 CairoMakie.image(CairoMakie.rotr90(mandel_image))
-
-# ╔═╡ 6c0e8029-0cae-493e-b59b-7bc6c92c6aed
-hbox([
-	(@bind mandel_platform Select([p => p.name for p in cl.platforms()])),
-	Div(html" "; style = Dict("flex-grow" => "1")),
-	(@bind mandel_device Select([d => d.name for d in cl.devices(mandel_platform)])),
-])
-
-# ╔═╡ 252f41a3-fc39-45e0-8dca-8750245f2057
-# ╠═╡ disabled = true
-#=╠═╡
-mandel_platform, mandel_device, mandel_select = platform_device_select()
-  ╠═╡ =#
 
 # ╔═╡ Cell order:
 # ╟─2861935c-c989-434b-996f-f2c99d785315
@@ -211,16 +238,24 @@ mandel_platform, mandel_device, mandel_select = platform_device_select()
 # ╟─2eba97cf-56c2-457c-b07d-1ec5678476b1
 # ╟─426b14a2-218a-4639-a36a-0188e8f8328a
 # ╟─a48fb960-3a78-435f-9167-78d831667252
+# ╟─2cfe65d7-669f-426e-af8a-473bc5f36318
 # ╟─adf26494-b700-4867-8c74-f8d520bbd29d
+# ╟─11444947-ce05-47c2-8f84-8ed3af3d8665
 # ╟─f161cf4d-f516-4db8-a54f-c757f50d4d83
 # ╟─2e0ffb06-536b-402c-9ee8-8980c6f08d37
 # ╟─269eadc2-77ea-4329-ae77-a2df4d2af8cb
 # ╠═7e29d33b-9956-4663-9985-b89923fbf1f8
 # ╟─05372b0b-f03c-4b50-99c2-51559da18137
+# ╟─7c6a4307-610b-461e-b63a-e1b10fade204
+# ╟─bcd452a4-4705-42b5-9bb0-8e0584973c93
 # ╟─ff473748-ed4a-4cef-9681-10ba978a3525
+# ╟─7f24b243-c4d0-4ff7-9289-74eafcd6b617
+# ╟─4487eb86-89c4-4d95-96c2-183d564aafd9
+# ╠═e176f74e-b1c7-42fd-b150-966ef2c59835
+# ╠═4c46552d-b876-4bd8-86c3-176a377e093c
+# ╠═8bcfca40-b4b6-4ef6-94a9-dbdba8b6ca7b
+# ╠═4c9385f7-9116-44f8-b3ff-de4e1b82fbc7
 # ╟─ee9ca02c-d431-4194-ba96-67a855d0f7b1
-# ╠═252f41a3-fc39-45e0-8dca-8750245f2057
-# ╟─d92bef71-976a-42dd-81ca-5c298697f2e2
 # ╟─6c0e8029-0cae-493e-b59b-7bc6c92c6aed
 # ╟─3e0f2c68-c766-4277-8e3b-8ada91050aa3
 # ╠═c902f1de-5659-4518-b3ac-534844e9a93c
