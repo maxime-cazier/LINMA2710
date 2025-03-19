@@ -110,12 +110,6 @@ md"See also `clinfo` command line tool and `examples/OpenCL/common/device_info.c
 # ╔═╡ ee9ca02c-d431-4194-ba96-67a855d0f7b1
 frametitle("Mandelbrot")
 
-# ╔═╡ 6c0e8029-0cae-493e-b59b-7bc6c92c6aed
-@bind platform Select(cl.platforms())
-
-# ╔═╡ 3ae9f360-df65-40dc-9222-ec0636fb739c
-@bind device Select(cl.devices(platform))
-
 # ╔═╡ 3e0f2c68-c766-4277-8e3b-8ada91050aa3
 hbox([
 	md"""`mandel_size` = $(@bind mandel_size Slider(2 .^ (4:16), default = 512, show_value = true))""",
@@ -132,9 +126,43 @@ mandel_source = code(Example("OpenCL/mandelbrot/mandel.cl"));
 # ╔═╡ 81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
 aside(codesnippet(mandel_source), v_offset = -400)
 
+# ╔═╡ d49864e2-4643-4bb4-8fed-b53a3b5f2dcb
+function platform_device_select()
+	p = @bind platform Select([p => p.name for p in cl.platforms()])
+	d = @bind device Select([d => d.name for d in cl.devices(platform)])
+	return platform, device, hbox([
+		p,
+		Div(html" "; style = Dict("flex-grow" => "1")),
+		d,
+	])
+end
+
+# ╔═╡ ff473748-ed4a-4cef-9681-10ba978a3525
+md"""
+* Platform
+  - name: $(platform.name)
+  - profile: $(platform.profile)
+  - vendor: $(platform.vendor)
+  - version: $(platform.version)
+* Device
+  - name: $(device.name)
+  - type: $(device.device_type)
+  - memory size: $(div(device.global_mem_size, 1024^2)) MB
+  - max mem alloc size: $(div(device.max_mem_alloc_size, 1024^2)) MB
+  - max clock freq: $(device.max_clock_frequency) MHz
+  - max compute units: $(device.max_compute_units)
+  - max work group size: $(device.max_work_group_size)
+  - max work item size: $(device.max_work_item_size)
+"""
+
+# ╔═╡ d92bef71-976a-42dd-81ca-5c298697f2e2
+#=╠═╡
+mandel_select
+  ╠═╡ =#
+
 # ╔═╡ 3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
 function mandel_opencl(q::Array{ComplexF32}, maxiter::Int64)
-	cl.device!(device)
+	cl.device!(mandel_device)
     q = CLArray(q)
     o = CLArray{Cushort}(undef, size(q))
 
@@ -159,6 +187,19 @@ import CairoMakie # not `using`  as `Slider` collides with PlutoUI
 # ╔═╡ ed8bf827-d280-4c80-9518-ddb35614daaa
 CairoMakie.image(CairoMakie.rotr90(mandel_image))
 
+# ╔═╡ 6c0e8029-0cae-493e-b59b-7bc6c92c6aed
+hbox([
+	(@bind mandel_platform Select([p => p.name for p in cl.platforms()])),
+	Div(html" "; style = Dict("flex-grow" => "1")),
+	(@bind mandel_device Select([d => d.name for d in cl.devices(mandel_platform)])),
+])
+
+# ╔═╡ 252f41a3-fc39-45e0-8dca-8750245f2057
+# ╠═╡ disabled = true
+#=╠═╡
+mandel_platform, mandel_device, mandel_select = platform_device_select()
+  ╠═╡ =#
+
 # ╔═╡ Cell order:
 # ╟─2861935c-c989-434b-996f-f2c99d785315
 # ╟─6a09a11c-6ddd-4302-b371-7a947f339b52
@@ -176,16 +217,19 @@ CairoMakie.image(CairoMakie.rotr90(mandel_image))
 # ╟─269eadc2-77ea-4329-ae77-a2df4d2af8cb
 # ╠═7e29d33b-9956-4663-9985-b89923fbf1f8
 # ╟─05372b0b-f03c-4b50-99c2-51559da18137
+# ╟─ff473748-ed4a-4cef-9681-10ba978a3525
 # ╟─ee9ca02c-d431-4194-ba96-67a855d0f7b1
+# ╠═252f41a3-fc39-45e0-8dca-8750245f2057
+# ╟─d92bef71-976a-42dd-81ca-5c298697f2e2
 # ╟─6c0e8029-0cae-493e-b59b-7bc6c92c6aed
-# ╟─3ae9f360-df65-40dc-9222-ec0636fb739c
 # ╟─3e0f2c68-c766-4277-8e3b-8ada91050aa3
 # ╠═c902f1de-5659-4518-b3ac-534844e9a93c
 # ╠═02a4d1b9-b8ec-4fd5-84fa-4cf67d947419
 # ╟─ed8bf827-d280-4c80-9518-ddb35614daaa
 # ╟─81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
 # ╟─0c3de497-aa34-441c-9e8d-8007809c05e4
-# ╟─3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
+# ╠═3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
+# ╠═d49864e2-4643-4bb4-8fed-b53a3b5f2dcb
 # ╟─7f00bb10-fe5b-11ef-0aeb-dd2bd85aac10
 # ╟─8dcb5cf0-d579-42ba-ba4d-41c599587975
 # ╟─a4db4017-9ecd-4b03-9127-2c75e5d2c537
