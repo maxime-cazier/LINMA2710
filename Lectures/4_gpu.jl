@@ -4,14 +4,29 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    #! format: off
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+    #! format: on
+end
+
 # ╔═╡ 7f00bb10-fe5b-11ef-0aeb-dd2bd85aac10
 import Pkg
 
 # ╔═╡ 8dcb5cf0-d579-42ba-ba4d-41c599587975
 Pkg.activate(".")
 
+# ╔═╡ 4034621b-b836-43f6-99ec-2f7ac88cf4e3
+using OpenCL, pocl_jll # `pocl_jll` provides the POCL OpenCL platform for CPU devices
+
 # ╔═╡ 584dcbdd-cfed-4e19-9b7c-0e5256d051fa
-using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, BenchmarkTools, OpenCL, pocl_jll
+using MyUtils, PlutoUI, PlutoUI.ExperimentalLayout, Luxor, StaticArrays, BenchmarkTools, PlutoTeachingTools
 
 # ╔═╡ 2861935c-c989-434b-996f-f2c99d785315
 header("LINMA2710 - Scientific Computing
@@ -19,7 +34,10 @@ Graphics processing unit (GPU)", "P.-A. Absil and B. Legat")
 
 # ╔═╡ 6a09a11c-6ddd-4302-b371-7a947f339b52
 md"""
-* Source : [HandsOnOpenCL](https://github.com/HandsOnOpenCL/Lecture-Slides)
+Sources
+
+* [OpenCL.jl](https://github.com/JuliaGPU/OpenCL.jl)
+* [HandsOnOpenCL](https://github.com/HandsOnOpenCL/Lecture-Slides)
 """
 
 # ╔═╡ 2b7036fe-2cd6-45bb-8124-b805b85fd0ba
@@ -73,20 +91,73 @@ hbox([
 # ╔═╡ f161cf4d-f516-4db8-a54f-c757f50d4d83
 img("https://upload.wikimedia.org/wikipedia/de/d/d1/OpenCL_Memory_model.svg")
 
+# ╔═╡ 2e0ffb06-536b-402c-9ee8-8980c6f08d37
+frametitle("OpenCL Platforms and Devices")
+
+# ╔═╡ 269eadc2-77ea-4329-ae77-a2df4d2af8cb
+md"""
+* Platforms are OpenGL implementations, listed in `/etc/OpenCL/vendors`
+* Devices are actual CPUs/GPUs
+* ICD allows to change platform at runtime.
+"""
+
 # ╔═╡ 7e29d33b-9956-4663-9985-b89923fbf1f8
 OpenCL.versioninfo()
 
-# ╔═╡ aaa38deb-6aac-4d3c-bb1a-9ce01231c7d5
-cl.device()
+# ╔═╡ 05372b0b-f03c-4b50-99c2-51559da18137
+md"See also `clinfo` command line tool and `examples/OpenCL/common/device_info.c`."
 
-# ╔═╡ 31d22594-6682-4fa3-946c-4eb3feab9823
-cl.device().max_work_group_size
+# ╔═╡ ee9ca02c-d431-4194-ba96-67a855d0f7b1
+frametitle("Mandelbrot")
 
-# ╔═╡ d0e2e643-93e1-4b48-866e-d12a3714e419
-cl.device().extensions
+# ╔═╡ 6c0e8029-0cae-493e-b59b-7bc6c92c6aed
+@bind platform Select(cl.platforms())
+
+# ╔═╡ 3ae9f360-df65-40dc-9222-ec0636fb739c
+@bind device Select(cl.devices(platform))
+
+# ╔═╡ 3e0f2c68-c766-4277-8e3b-8ada91050aa3
+hbox([
+	md"""`mandel_size` = $(@bind mandel_size Slider(2 .^ (4:16), default = 512, show_value = true))""",
+	Div(html" "; style = Dict("flex-grow" => "1")),
+	md"""`maxiter` = $(@bind maxiter Slider(1:200, default = 100, show_value = true))""",
+])
+
+# ╔═╡ c902f1de-5659-4518-b3ac-534844e9a93c
+q = [ComplexF32(r,i) for i=1:-(2.0/mandel_size):-1, r=-1.5:(3.0/mandel_size):0.5];
+
+# ╔═╡ 0c3de497-aa34-441c-9e8d-8007809c05e4
+mandel_source = code(Example("OpenCL/mandelbrot/mandel.cl"));
+
+# ╔═╡ 81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
+aside(codesnippet(mandel_source), v_offset = -400)
+
+# ╔═╡ 3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
+function mandel_opencl(q::Array{ComplexF32}, maxiter::Int64)
+	cl.device!(device)
+    q = CLArray(q)
+    o = CLArray{Cushort}(undef, size(q))
+
+    prg = cl.Program(; source = mandel_source.code) |> cl.build!
+    k = cl.Kernel(prg, "mandelbrot")
+
+    clcall(k, Tuple{Ptr{ComplexF32}, Ptr{Cushort}, Cushort},
+           q, o, maxiter; global_size=length(q))
+
+    return Array(o)
+end
+
+# ╔═╡ 02a4d1b9-b8ec-4fd5-84fa-4cf67d947419
+mandel_image = @time mandel_opencl(q, maxiter);
 
 # ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
 Pkg.instantiate()
+
+# ╔═╡ 3ce993a9-8354-47a5-8c63-ff0b0b70caa5
+import CairoMakie # not `using`  as `Slider` collides with PlutoUI
+
+# ╔═╡ ed8bf827-d280-4c80-9518-ddb35614daaa
+CairoMakie.image(CairoMakie.rotr90(mandel_image))
 
 # ╔═╡ Cell order:
 # ╟─2861935c-c989-434b-996f-f2c99d785315
@@ -101,11 +172,23 @@ Pkg.instantiate()
 # ╟─a48fb960-3a78-435f-9167-78d831667252
 # ╟─adf26494-b700-4867-8c74-f8d520bbd29d
 # ╟─f161cf4d-f516-4db8-a54f-c757f50d4d83
+# ╟─2e0ffb06-536b-402c-9ee8-8980c6f08d37
+# ╟─269eadc2-77ea-4329-ae77-a2df4d2af8cb
 # ╠═7e29d33b-9956-4663-9985-b89923fbf1f8
-# ╠═aaa38deb-6aac-4d3c-bb1a-9ce01231c7d5
-# ╠═31d22594-6682-4fa3-946c-4eb3feab9823
-# ╠═d0e2e643-93e1-4b48-866e-d12a3714e419
+# ╟─05372b0b-f03c-4b50-99c2-51559da18137
+# ╟─ee9ca02c-d431-4194-ba96-67a855d0f7b1
+# ╟─6c0e8029-0cae-493e-b59b-7bc6c92c6aed
+# ╟─3ae9f360-df65-40dc-9222-ec0636fb739c
+# ╟─3e0f2c68-c766-4277-8e3b-8ada91050aa3
+# ╠═c902f1de-5659-4518-b3ac-534844e9a93c
+# ╠═02a4d1b9-b8ec-4fd5-84fa-4cf67d947419
+# ╟─ed8bf827-d280-4c80-9518-ddb35614daaa
+# ╟─81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
+# ╟─0c3de497-aa34-441c-9e8d-8007809c05e4
+# ╟─3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
 # ╟─7f00bb10-fe5b-11ef-0aeb-dd2bd85aac10
 # ╟─8dcb5cf0-d579-42ba-ba4d-41c599587975
 # ╟─a4db4017-9ecd-4b03-9127-2c75e5d2c537
-# ╠═584dcbdd-cfed-4e19-9b7c-0e5256d051fa
+# ╠═4034621b-b836-43f6-99ec-2f7ac88cf4e3
+# ╟─584dcbdd-cfed-4e19-9b7c-0e5256d051fa
+# ╟─3ce993a9-8354-47a5-8c63-ff0b0b70caa5

@@ -31,7 +31,7 @@
 #define DEVICE CL_DEVICE_TYPE_DEFAULT
 #endif
 
-extern int output_device_info(cl_device_id );
+extern int output_device_info(cl_device_id);
 
 // https://stackoverflow.com/questions/31549753/taking-file-inputs-in-opencl
 char* read_file(const char *name) {
@@ -282,4 +282,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-

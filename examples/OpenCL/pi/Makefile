@@ -1,13 +1,12 @@
-
 ifndef CC
-	CC = gcc
+	CC = clang
 endif
 
-CCFLAGS=-O3 -std=c99
+CCFLAGS=-O3 -std=c99 -DCL_TARGET_OPENCL_VERSION=300
 
 LIBS = -lOpenCL -fopenmp -lm
 
-COMMON_DIR = ../../C_common
+COMMON_DIR = ../common
 
 # Check our platform and make sure we define the APPLE variable
 # and set up the right compiler flags and libraries

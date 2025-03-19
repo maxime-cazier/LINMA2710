@@ -20,8 +20,13 @@ macro cpp_str(s)
     return :($CppCode($(esc(s))))
 end
 
+struct CLCode <: Code
+    code::String
+end
+
 source_extension(::CCode) = "c"
 source_extension(::CppCode) = "cpp"
+source_extension(::CLCode) = "cl"
 
 compiler(::CCode, mpi::Bool) = mpi ? "mpicc" : "clang"
 function compiler(::CppCode, mpi::Bool)
@@ -171,6 +176,8 @@ function code(example::Example)
         return CCode(code)
     elseif ext == "cpp" || ext == "cc"
         return CppCode(code)
+    elseif ext == "cl"
+        return CLCode(code)
     else
         error("Unrecognized extension `$ext`.")
     end

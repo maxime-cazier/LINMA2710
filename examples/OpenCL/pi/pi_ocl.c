@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
     cl_mem d_partial_sums;
 
-    char *kernelsource = getKernelSource("../pi_ocl.cl");             // Kernel source
+    char *kernelsource = getKernelSource("pi_ocl.cl");             // Kernel source
 
     cl_int err;
     cl_device_id        device;     // compute device id
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     context = clCreateContext(0, 1, &device, NULL, NULL, &err);
     checkError(err, "Creating context");
     // Create a command queue
-    commands = clCreateCommandQueue(context, device, 0, &err);
+    commands = clCreateCommandQueueWithProperties(context, device, NULL, &err);
     checkError(err, "Creating command queue");
     // Create the compute program from the source buffer
     program = clCreateProgramWithSource(context, 1, (const char **) & kernelsource, NULL, &err);
