@@ -9,6 +9,8 @@ To run the `Makefile`s of this directory, you need to install OpenCL headers:
 $ sudo pacman -S opencl-headers # ArchLinux
 ```
 
+To use the GPU as OpenCL device from Julia, simply install `CUDA.jl`, no need for `module load CUDA` on the CECI cluster.
+
 To use an intel GPU as OpenCL device, install the Intel compute runtime
 ```sh
 $ sudo pacman -S intel-compute-runtime # ArchLinux
