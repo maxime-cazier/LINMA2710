@@ -33,6 +33,26 @@
 
 extern int output_device_info(cl_device_id );
 
+// https://stackoverflow.com/questions/31549753/taking-file-inputs-in-opencl
+char* read_file(const char *name) {
+    // get size of kernel source
+    FILE *programHandle = fopen(name, "r");
+    if (programHandle == NULL) {
+        fprintf(stderr, "Invalid file %s\n", name);
+        exit(EXIT_FAILURE);
+    }
+    fseek(programHandle, 0, SEEK_END);
+    size_t programSize = ftell(programHandle);
+    rewind(programHandle);
+
+    // read kernel source into buffer
+    char *programBuffer = (char*) malloc(programSize + 1);
+    programBuffer[programSize] = '\0';
+    fread(programBuffer, sizeof(char), programSize, programHandle);
+    fclose(programHandle);
+    return programBuffer;
+}
+
 //------------------------------------------------------------------------------
 
 #define TOL    (0.001)   // tolerance used in floating point comparisons
@@ -49,18 +69,7 @@ extern int output_device_info(cl_device_id );
 // output: c float vector of length count holding the sum a + b
 //
 
-const char *KernelSource = "\n" \
-"__kernel void vadd(                                                 \n" \
-"   __global float* a,                                                  \n" \
-"   __global float* b,                                                  \n" \
-"   __global float* c,                                                  \n" \
-"   const unsigned int count)                                           \n" \
-"{                                                                      \n" \
-"   int i = get_global_id(0);                                           \n" \
-"   if(i < count)                                                       \n" \
-"       c[i] = a[i] + b[i];                                             \n" \
-"}                                                                      \n" \
-"\n";
+const char *KERNEL_SOURCE = "vadd.cl";
 
 //------------------------------------------------------------------------------
 
@@ -122,6 +131,8 @@ int main(int argc, char** argv)
     err = clGetPlatformIDs(numPlatforms, Platform, NULL);
     checkError(err, "Getting platforms");
 
+    printf("%d platforms found\n", numPlatforms);
+
     // Secure a GPU
     for (i = 0; i < numPlatforms; i++)
     {
@@ -143,12 +154,14 @@ int main(int argc, char** argv)
     checkError(err, "Creating context");
 
     // Create a command queue
-    commands = clCreateCommandQueue(context, device_id, 0, &err);
+    commands = clCreateCommandQueueWithProperties(context, device_id, NULL, &err);
     checkError(err, "Creating command queue");
 
     // Create the compute program from the source buffer
-    program = clCreateProgramWithSource(context, 1, (const char **) & KernelSource, NULL, &err);
+    char *kernel_source = read_file(KERNEL_SOURCE);
+    program = clCreateProgramWithSource(context, 1, (const char **) &kernel_source, NULL, &err);
     checkError(err, "Creating program");
+    free(kernel_source);
 
     // Build the program  
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
