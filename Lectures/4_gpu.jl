@@ -151,14 +151,35 @@ hbox([
 	(@bind vadd_device Select([d => d.name for d in cl.devices(vadd_platform)])),
 ])
 
+# ╔═╡ c9832cda-cb4a-4ffd-b093-ea440e85de20
+md"""`vadd_size` = $(@bind vadd_size Slider(2 .^ (4:16), default = 512, show_value = true))"""
+
 # ╔═╡ e176f74e-b1c7-42fd-b150-966ef2c59835
 vadd_source = code(Example("OpenCL/vadd/vadd.cl"));
 
 # ╔═╡ 4c46552d-b876-4bd8-86c3-176a377e093c
-vadd_kernel = cl.Kernel(cl.Program(; source = vadd_source.code) |> cl.build!, "vadd")
+vadd_kernel = begin
+	cl.device!(vadd_device)
+	cl.Kernel(cl.Program(; source = vadd_source.code) |> cl.build!, "vadd")
+end
 
 # ╔═╡ 8bcfca40-b4b6-4ef6-94a9-dbdba8b6ca7b
+function vadd_bench(dims...)
+	a = round.(rand(Float32, dims) * 100)
+	b = round.(rand(Float32, dims) * 100)
+	c = similar(a)
 
+	d_a = CLArray(a)
+	d_b = CLArray(b)
+	d_c = CLArray(c)
+
+	len = prod(dims)
+	@time clcall(vadd_kernel, Tuple{CLPtr{Float32}, CLPtr{Float32}, CLPtr{Float32}},
+       d_a, d_b, d_c; global_size=(len,))
+end
+
+# ╔═╡ 48943ec0-f596-4e82-a161-5062a2852a1d
+vadd_bench(vadd_size);
 
 # ╔═╡ 4c9385f7-9116-44f8-b3ff-de4e1b82fbc7
 aside(codesnippet(vadd_source), v_offset = -400)
@@ -251,10 +272,12 @@ CairoMakie.image(CairoMakie.rotr90(mandel_image))
 # ╟─ff473748-ed4a-4cef-9681-10ba978a3525
 # ╟─7f24b243-c4d0-4ff7-9289-74eafcd6b617
 # ╟─4487eb86-89c4-4d95-96c2-183d564aafd9
+# ╟─c9832cda-cb4a-4ffd-b093-ea440e85de20
 # ╠═e176f74e-b1c7-42fd-b150-966ef2c59835
 # ╠═4c46552d-b876-4bd8-86c3-176a377e093c
+# ╠═48943ec0-f596-4e82-a161-5062a2852a1d
 # ╠═8bcfca40-b4b6-4ef6-94a9-dbdba8b6ca7b
-# ╠═4c9385f7-9116-44f8-b3ff-de4e1b82fbc7
+# ╟─4c9385f7-9116-44f8-b3ff-de4e1b82fbc7
 # ╟─ee9ca02c-d431-4194-ba96-67a855d0f7b1
 # ╟─6c0e8029-0cae-493e-b59b-7bc6c92c6aed
 # ╟─3e0f2c68-c766-4277-8e3b-8ada91050aa3
