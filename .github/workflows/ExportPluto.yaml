@@ -48,6 +48,12 @@ jobs:
                 sudo apt-get install -y openmpi-bin libopenmpi-dev
                 sudo apt-get install -y libomp-dev
 
+            - name: Instantiate
+              run: |
+                julia -e 'using Pkg
+                  Pkg.activate("Lectures")
+                  Pkg.precompile()'
+
             - name: Pdf exports
               continue-on-error: true # See https://github.com/JuliaPluto/PlutoPDF.jl/issues/18#issuecomment-2729959525
               run: | # We don't `Pkg.precompile()` because PlutoPDF might need a Pkg.build after instantiate, see https://github.com/JuliaPluto/PlutoPDF.jl/issues/28#issuecomment-2743155289
