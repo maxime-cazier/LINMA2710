@@ -55,10 +55,10 @@ jobs:
 
             - name: Pdf exports
               continue-on-error: true # See https://github.com/JuliaPluto/PlutoPDF.jl/issues/18#issuecomment-2729959525
-              run: |
+              run: | # We don't `Pkg.precompile()` because PlutoPDF might need a Pkg.build after instantiate, see https://github.com/JuliaPluto/PlutoPDF.jl/issues/28#issuecomment-2743155289
                 julia -e 'using Pkg
                   Pkg.activate("pluto-slider-server")
-                  Pkg.instantiate() # We don't precompile because PlutoPDF might need a Pkg.build after instantiate, see https://github.com/JuliaPluto/PlutoPDF.jl/issues/28#issuecomment-2743155289
+                  Pkg.instantiate()
                   include("pluto-slider-server/generate_pdf.jl")'
 
             - name: Run & export Pluto notebooks
