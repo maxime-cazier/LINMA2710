@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:1
 
 ip=$(hostname -i)
-echo "Run \$ sshuttle -r $CLUSTER_NAME $ip/16"
+echo "On your local computer (not the CECI cluster!), run \$ sshuttle -r $CLUSTER_NAME $ip/16"
 echo "Checking node CPU info:"
 julia --project -e 'using InteractiveUtils; versioninfo()'
 echo "Install Julia packages and compile them:"

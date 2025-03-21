@@ -20,12 +20,38 @@ You will need to install the [LLVM OpenMP Runtime Library](https://openmp.llvm.o
 
 ## Option 3 : Run it from the CECI cluster
 
+Run the following lines.
+You can see below that the first time I run `cat slurm-....out`, I don't see anything because it hasn't started yet as you can see in the output of `squeue --me`.
+You need then to way for the output of `cat slurm-....out` to display `Go to http://....`
+The, run `sshuttle -r manneback 10.3.221.102/16` on your **local** computer, not on the CECI cluster.
+Then open the url given after `Go to` using a web browser on your local computer and you should see the pluto menu. Select one of the lectures and it should be running on the cluster!
 ```sh
 (your computer) $ ssh manneback
 [blegat@mbackf1 ~] git clone https://github.com/blegat/LINMA2710.git
 [blegat@mbackf1 ~] cd LINMA2710/Lectures
 [blegat@mbackf1 ~] sh install_julia.sh
 [blegat@mbackf1 ~] sbatch pluto_gpu1.sh
+[blegat@mbackf1 Lectures]$ sbatch pluto_gpu1.sh
+Submitted batch job 56863614
+[blegat@mbackf1 Lectures]$ squeue --me
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+          56863614       gpu pluto_gp   blegat PD       0:00      1 (Priority)
+[blegat@mbackf1 Lectures]$ cat slurm-56863584.out
+[blegat@mbackf1 Lectures]$ squeue --me
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+          56863614       gpu pluto_gp   blegat  R       0:02      1 mb-icg102
+[blegat@mbackf1 Lectures]$ cat slurm-56863584.out
+On your local computer (not the CECI cluster!), run $ sshuttle -r manneback 10.3.221.102/16
+...
+1 device:
+  0: NVIDIA A10 (sm_86, 21.972 GiB / 22.488 GiB available)
+Launching Pluto:
+[ Info: Loading...
+┌ Info:
+└ Go to http://10.3.221.102:1234/?secret=AV0z9DVY in your browser to start writing ~ have fun!
+┌ Info:
+│ Press Ctrl+C in this terminal to stop Pluto
+└
 ```
 
 
