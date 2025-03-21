@@ -1,6 +1,7 @@
 # Lectures
 
 [<img src="https://plutojl.org/assets/favicon.svg" height="20"/>![](https://img.shields.io/badge/Notebooks-View-blue.svg)<img src="https://plutojl.org/assets/favicon.svg" height="20"/>](https://blegat.github.io/LINMA2710/)
+[<img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>](https://colab.research.google.com/drive/1MWAwv3qeaX97nCNBc7adeukaK7vqc_KO?usp=sharing)
 
 This folder contains the [Pluto](https://plutojl.org/) notebooks of the course. There are two options to visualize them.
 
@@ -18,7 +19,11 @@ Now, install [Julia](https://julialang.org/) (I recommend doing this using [juli
 Once this is completed, [install and then run Pluto](https://plutojl.org/#install).
 You will need to install the [LLVM OpenMP Runtime Library](https://openmp.llvm.org/) for the `-fopenmp` flag to work (or you will get `"-lomp": No such file or directory` when to use the checkbox enabling `-fopenmp`). Do for instance `# apt-get install libomp-dev` on Ubuntu or `# pacman -S openmp` on ArchLinux.
 
-## Option 3 : Run it from the CECI cluster
+## Option 3 : Run it with Google Colab.
+
+[This Google Colab notebook](https://colab.research.google.com/drive/1MWAwv3qeaX97nCNBc7adeukaK7vqc_KO?usp=sharing) shows how to do it.
+
+## Option 4 : Run it from the CECI cluster
 
 Run the following lines.
 You can see below that the first time I run `cat slurm-....out`, I don't see anything because it hasn't started yet as you can see in the output of `squeue --me`.
