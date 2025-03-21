@@ -3,5 +3,5 @@ The html versions accessible here are static, see [here](Lectures) for details o
 
 * Single Instruction Multiple Data (SIMD) [html](Lectures/1_simd.html) [pdf](Lectures/1_simd.pdf)
 * Shared-Memory Multiprocessing [html](Lectures/2_shared.html) [pdf](Lectures/2_shared.pdf)
-* Distributed Computing with MPI [html](Lectures/3_mpi.html) [pdf](Lectures/3_mpi.html)
+* Distributed Computing with MPI [html](Lectures/3_mpi.html) [pdf](Lectures/3_mpi.pdf)
 * Graphics processing units [html](Lectures/4_gpu.html) [pdf](Lectures/4_gpu.pdf)
