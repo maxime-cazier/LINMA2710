@@ -1,7 +1,7 @@
 # Lectures
 
 [<img src="https://plutojl.org/assets/favicon.svg" height="20"/>![](https://img.shields.io/badge/Notebooks-View-blue.svg)<img src="https://plutojl.org/assets/favicon.svg" height="20"/>](https://blegat.github.io/LINMA2710/)
-[<img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>](https://colab.research.google.com/drive/1MWAwv3qeaX97nCNBc7adeukaK7vqc_KO?usp=sharing)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1MWAwv3qeaX97nCNBc7adeukaK7vqc_KO?usp=sharing)
 
 This folder contains the [Pluto](https://plutojl.org/) notebooks of the course. There are two options to visualize them.
 
