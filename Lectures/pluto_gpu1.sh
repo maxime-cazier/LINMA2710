@@ -8,5 +8,11 @@
 
 ip=$(hostname -i)
 echo "Run \$ sshuttle -r $CLUSTER_NAME $ip/16"
+echo "Checking node CPU info:"
+julia --project -e 'using InteractiveUtils; versioninfo()'
+echo "Install Julia packages and compile them:"
 julia --project -e 'import Pkg; Pkg.instantiate()'
-julia --project -e "import Pluto; Pluto.run(host=\"$ip\", port=1234, launch_browser=false)"
+echo "Checking node GPU info:"
+julia --project -e 'using CUDA; CUDA.versioninfo()'
+echo "Launching Pluto:"
+srun julia --project -e "import Pluto; Pluto.run(host=\"$ip\", port=1234, launch_browser=false)"
