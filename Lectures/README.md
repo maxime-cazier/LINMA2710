@@ -18,6 +18,17 @@ Now, install [Julia](https://julialang.org/) (I recommend doing this using [juli
 Once this is completed, [install and then run Pluto](https://plutojl.org/#install).
 You will need to install the [LLVM OpenMP Runtime Library](https://openmp.llvm.org/) for the `-fopenmp` flag to work (or you will get `"-lomp": No such file or directory` when to use the checkbox enabling `-fopenmp`). Do for instance `# apt-get install libomp-dev` on Ubuntu or `# pacman -S openmp` on ArchLinux.
 
+## Option 3 : Run it from the CECI cluster
+
+```sh
+(your computer) $ ssh manneback
+[blegat@mbackf1 ~] git clone https://github.com/blegat/LINMA2710.git
+[blegat@mbackf1 ~] cd LINMA2710/Lectures
+[blegat@mbackf1 ~] sh install_julia.sh
+[blegat@mbackf1 ~] sbatch pluto_gpu1.sh
+```
+
+
 ## 🏆 Gain bonus points by fixing typos
 
 If you find any typo or mistakes, feel free to open an issue or make a pull requests, it will be rewarded by bonus points on your final grade of the course! Note that [you can make a pull request without having to leave your web browser](https://docs.github.com/en/repositories/working-with-files/managing-files/editing-files).
