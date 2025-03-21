@@ -55,7 +55,6 @@ jobs:
                   Pkg.precompile()'
 
             - name: Pdf exports
-              continue-on-error: true # See https://github.com/JuliaPluto/PlutoPDF.jl/issues/18#issuecomment-2729959525
               run: | # We don't `Pkg.precompile()` because PlutoPDF might need a Pkg.build after instantiate, see https://github.com/JuliaPluto/PlutoPDF.jl/issues/28#issuecomment-2743155289
                 julia -e 'using Pkg
                   Pkg.activate("pluto-slider-server")
