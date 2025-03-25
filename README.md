@@ -49,6 +49,14 @@ Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/Tran
 ```
 It might however be a bit tedious to keep the files in sync with `scp`. I recommend pushing your project in a **private** (don't use a public git as your code shouldn't be accessible to other students!) git (for instance in https://forge.uclouvain.be/) and pull it from the CECI cluster. You can then easily update the code on the CECI cluster with `git pull`.
 **Important** do not sync the binaries of with the CECI cluster as you might have a different architecture. Exclude them from the git by adding them in the `.gitignore` file and simply recompile them on the cluster.
+You can also modify the files in a folder locally using `sshfs`.
+For instance, I have a `LINMA2710` folder in my home directory on the `manneback` cluster.
+To access these files locally on a new folder `manneback`, I can do
+```sh
+(local computer)$ mkdir manneback-sshfs
+(local computer)$ sshfs manneback:/home/ucl/inma/blegat/LINMA2710 ./manneback-sshfs
+```
+You can then open the `manneback-sshfs` with your favorite IDE on your local computers and you will be modifying files directly on the cluster!
 
 ### Submit a job
 
