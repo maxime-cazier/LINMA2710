@@ -38,6 +38,8 @@ Sources
 
 * [OpenCL.jl](https://github.com/JuliaGPU/OpenCL.jl)
 * [HandsOnOpenCL](https://github.com/HandsOnOpenCL/Lecture-Slides)
+* [Optimizing Parallel Reduction in CUDA](https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf)
+* [Parallel Computation Patterns (Reduction)](sshuttle -r manneback 10.3.221.102/16)
 """
 
 # ╔═╡ 2b7036fe-2cd6-45bb-8124-b805b85fd0ba
@@ -248,11 +250,38 @@ vec = rand(Float32, local_len)
 # ╔═╡ 162d84a4-1782-4fe0-8829-0b2f0aab1c4a
 @btime sum(vec)
 
-# ╔═╡ 229994de-6ea5-47f4-9da7-72f4827ab4ba
+# ╔═╡ cefe3234-28ef-4591-87ad-a4b3468610d7
 local_sum_code = code(Example("OpenCL/sum/local_sum.cl"));
 
 # ╔═╡ 9195adff-cc5d-4504-9a31-ba19b18639a0
-Foldable(md"How to compute the sum an array in **local** memory with a kernel ?", codesnippet(local_sum_code))
+Foldable(
+	md"How to compute the sum an array in **local** memory with a kernel ?",
+	codesnippet(local_sum_code),
+)
+
+# ╔═╡ 040af2e8-fc93-40e6-a0f1-70c96d864609
+Foldable(
+	md"How to reduce the amount of `barrier` synchronizations ?",
+	codesnippet(local_sum_code),
+)
+
+# ╔═╡ 901cb94a-1cf1-4193-805c-b04d4feb51d2
+aside((@bind block_local_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
+
+# ╔═╡ 1aa810e8-6017-4ed8-af33-5ea58f9393f3
+aside((@bind block_local_device Select([d => d.name for d in cl.devices(block_local_platform)])), v_offset = -400)
+
+# ╔═╡ 609e5894-db5b-48f9-bc4a-9224f40012c2
+aside(md"`block_local_len` = $(@bind block_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ d945e9c5-5965-4859-9efb-0a356763ee6f
+block_vec = rand(Float32, block_local_len)
+
+# ╔═╡ 328db68d-aa1e-456b-9fed-65c4527e7f37
+aside(md"`factor` = $(@bind factor Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ d1c5c1e6-ab41-45b7-9983-e36a444105ee
+block_local_sum_code = code(Example("OpenCL/sum/block_local_sum.cl"));
 
 # ╔═╡ 09f6479a-bc27-436c-a3b3-12b84e084a86
 frametitle("Utils")
@@ -302,7 +331,7 @@ end
 evt = vadd(vadd_size, vadd_verbose);
 
 # ╔═╡ 3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
-function mandel(q::Array{ComplexF32}, maxiter::Int64, device)
+function mandel(q::Array{ComplexF32}, maxiter::Int64, device; kws...)
 	cl.device!(device)
     q = CLArray(q)
     o = CLArray{Cushort}(undef, size(q))
@@ -311,16 +340,16 @@ function mandel(q::Array{ComplexF32}, maxiter::Int64, device)
     k = cl.Kernel(prg, "mandelbrot")
 
     timed_clcall(k, Tuple{Ptr{ComplexF32}, Ptr{Cushort}, Cushort},
-           q, o, maxiter; global_size=length(q))
+           q, o, maxiter; kws...)
 
     return Array(o)
 end
 
 # ╔═╡ 02a4d1b9-b8ec-4fd5-84fa-4cf67d947419
-mandel_image = mandel(q, maxiter, mandel_device);
+mandel_image = mandel(q, maxiter, mandel_device; global_size=length(q));
 
 # ╔═╡ 64359922-c9ce-48a3-9f93-1626251e3d2d
-function mypi(; niters = 10, in_nsteps = 10)
+function mypi(; niters = 262144, in_nsteps = 512*512*512)
 	cl.device!(π_device)
 
     prg = cl.Program(; source = π_code.code) |> cl.build!
@@ -328,6 +357,17 @@ function mypi(; niters = 10, in_nsteps = 10)
 	work_group_size = cl.device().max_work_group_size
 	nwork_groups = in_nsteps ÷ (work_group_size * niters)
 	nsteps = work_group_size * niters * nwork_groups
+
+	nwork_groups = in_nsteps ÷ (work_group_size * niters)
+
+	if nwork_groups < 1
+    	# you can get opencl object info through the getproperty syntax
+    	nwork_groups = cl.device().max_compute_units
+    	work_group_size = in_nsteps ÷ (nwork_groups * niters)
+	end
+
+	nsteps = work_group_size * niters * nwork_groups
+
 	
 	step_size = 1.0 / nsteps
 
@@ -338,7 +378,7 @@ function mypi(; niters = 10, in_nsteps = 10)
 	h_psum = Vector{Float32}(undef, nwork_groups)
 	d_partial_sums = CLArray{Float32}(undef, length(h_psum))
     timed_clcall(pi_kernel, Tuple{Int32, Float32, cl.LocalMem{Float32}, Ptr{Float32}},
-       niters, step_size, localmem, d_partial_sums; global_size, local_size)
+    niters, step_size, localmem, d_partial_sums; global_size, local_size)
 	cl.copy!(h_psum, d_partial_sums)
 
 	return sum(h_psum) * step_size
@@ -355,15 +395,33 @@ function local_sum(x::Vector{T}) where {T}
     result = CLArray(zeros(T, 1))
 
     prg = cl.Program(; source = local_sum_code.code) |> cl.build!
-    k = cl.Kernel(prg, "local_sum")
+    k = cl.Kernel(prg, "sum")
 
-    timed_clcall(k, Tuple{Ptr{T}, cl.LocalMem{T}, Ptr{T}}, global_x, local_x, result; global_size=length(global_x))
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
 
     return Array(result)[]
 end
 
 # ╔═╡ a8f39218-e414-4d0e-a577-5d2a01b13c0c
 local_sum(vec)
+
+# ╔═╡ 0855eaeb-c6e4-40f9-80d2-930c960bbd3c
+function block_local_sum(x::Vector{T}, factor) where {T}
+	cl.device!(block_local_device)
+    global_x = CLArray(x)
+	local_x = cl.LocalMem(T, length(global_x))
+    result = CLArray(zeros(T, 1))
+
+    prg = cl.Program(; source = block_local_sum_code.code) |> cl.build!
+    k = cl.Kernel(prg, "sum")
+
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}, Cint}, global_x, local_x, result, factor; global_size=length(global_x))
+
+    return Array(result)[]
+end
+
+# ╔═╡ b151cf64-7297-44a1-ad7e-a6c9505ff7df
+block_local_sum(vec, factor)
 
 # ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
 Pkg.instantiate()
@@ -416,24 +474,33 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─c034c5e1-ff03-4e8d-a519-cda42e52d59f
 # ╟─81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
 # ╠═3f0383c1-f5e7-4f84-8b86-f5823c37e5eb
-# ╟─0c3de497-aa34-441c-9e8d-8007809c05e4
+# ╠═0c3de497-aa34-441c-9e8d-8007809c05e4
 # ╟─322b070d-4a1e-4e8b-80fe-85b1f69c451e
 # ╠═6144d563-10c6-449b-a20e-92c2b11da4e6
-# ╠═64359922-c9ce-48a3-9f93-1626251e3d2d
 # ╟─b525aeff-5d9f-49bf-b948-dc8de3f23c5d
-# ╟─c3db554a-a910-404d-b54c-5d24c20b9800
-# ╟─4eee8256-c989-47f4-94b8-9ad1b3f89357
+# ╠═c3db554a-a910-404d-b54c-5d24c20b9800
+# ╠═4eee8256-c989-47f4-94b8-9ad1b3f89357
 # ╟─1fc9096b-52f9-4a4b-a3aa-388fd1e427dc
+# ╟─64359922-c9ce-48a3-9f93-1626251e3d2d
 # ╟─ed441d0c-7f33-4c61-846c-a60195a77f97
 # ╠═9cb2ba52-3602-4a01-9b47-2db2552ad4c5
 # ╠═162d84a4-1782-4fe0-8829-0b2f0aab1c4a
 # ╠═a8f39218-e414-4d0e-a577-5d2a01b13c0c
-# ╠═9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
+# ╟─9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
 # ╟─9195adff-cc5d-4504-9a31-ba19b18639a0
 # ╟─15418031-5e3d-419a-aa92-8f2b69593c69
 # ╟─5a9e881e-479c-4b5a-af0a-8f543bf981f3
 # ╟─15bd7314-9ce8-4042-aea8-1c6a736d12a7
-# ╟─229994de-6ea5-47f4-9da7-72f4827ab4ba
+# ╠═cefe3234-28ef-4591-87ad-a4b3468610d7
+# ╠═d945e9c5-5965-4859-9efb-0a356763ee6f
+# ╠═b151cf64-7297-44a1-ad7e-a6c9505ff7df
+# ╟─040af2e8-fc93-40e6-a0f1-70c96d864609
+# ╠═0855eaeb-c6e4-40f9-80d2-930c960bbd3c
+# ╟─901cb94a-1cf1-4193-805c-b04d4feb51d2
+# ╟─1aa810e8-6017-4ed8-af33-5ea58f9393f3
+# ╟─609e5894-db5b-48f9-bc4a-9224f40012c2
+# ╟─328db68d-aa1e-456b-9fed-65c4527e7f37
+# ╠═d1c5c1e6-ab41-45b7-9983-e36a444105ee
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
 # ╠═e4f9813d-e171-4d04-870a-3802e0ee1728
 # ╟─7f00bb10-fe5b-11ef-0aeb-dd2bd85aac10

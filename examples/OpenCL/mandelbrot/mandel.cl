@@ -5,6 +5,8 @@ __kernel void mandelbrot(__global float2 *q,
     __global ushort *output, ushort const maxit) {
 
   int gid = get_global_id(0), it;
+  if (gid == 0)
+    printf("%d\n", get_num_groups(0));
   float tmp, real = 0, imag = 0;
   output[gid] = 0;
   for(it = 0; it < maxit; it++) {
