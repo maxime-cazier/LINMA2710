@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    quote
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -20,7 +20,7 @@ end
 import Pkg
 
 # ╔═╡ 8dcb5cf0-d579-42ba-ba4d-41c599587975
-Pkg.activate(".")
+Pkg.activate(@__DIR__)
 
 # ╔═╡ 4034621b-b836-43f6-99ec-2f7ac88cf4e3
 using OpenCL, pocl_jll # `pocl_jll` provides the POCL OpenCL platform for CPU devices
@@ -41,6 +41,9 @@ Sources
 * [Optimizing Parallel Reduction in CUDA](https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf)
 * [Parallel Computation Patterns (Reduction)](sshuttle -r manneback 10.3.221.102/16)
 """
+
+# ╔═╡ 093f3598-0fbc-4236-af12-d02d361bde1b
+section("Introduction")
 
 # ╔═╡ 2b7036fe-2cd6-45bb-8124-b805b85fd0ba
 frametitle("Context")
@@ -121,7 +124,7 @@ frametitle("OpenCL Platforms and Devices")
 md"""
 * Platforms are OpenGL implementations, listed in `/etc/OpenCL/vendors`
 * Devices are actual CPUs/GPUs
-* ICD allows to change platform at runtime.
+* ICD allows to change platform at runtime
 """
 
 # ╔═╡ 7e29d33b-9956-4663-9985-b89923fbf1f8
@@ -129,6 +132,9 @@ OpenCL.versioninfo()
 
 # ╔═╡ 05372b0b-f03c-4b50-99c2-51559da18137
 md"See also `clinfo` command line tool and `examples/OpenCL/common/device_info.c`."
+
+# ╔═╡ b8f2ae64-8e2a-4ac3-9635-4761077cb834
+aside(tip(Foldable(md"tl;dr To refresh the list of platforms, you need to quit Julia and open a new session", md"The OpenCL ICD Loader will compute the list of available platforms once the first time it is needed and it will never recompute it again. You can indeed see [here](https://github.com/KhronosGroup/OpenCL-ICD-Loader/blob/d547426c32f9af274ec1369acd1adcfd8fe0ee40/loader/linux/icd_linux.c#L234-L238) it it sets a global `initialized` variable to `true`. This means that, if you do `using pocl_jll` or install the required GPU drivers and look at the list of platforms again from the same Julia sessions, you won't see any changes! There is unfortunately no way to set this `initialized` variable back to `false` so you'll need to restart Julia and make sure you do `using pocl_jll` before using OpenCL. Fortunately, Pluto does this in the right order.")), v_offset = -400)
 
 # ╔═╡ 7c6a4307-610b-461e-b63a-e1b10fade204
 frametitle("Important stats")
@@ -169,6 +175,9 @@ md"""
   | `CL_DEVICE_MAX_CLOCK_FREQUENCY` | $(info_device.max_clock_frequency) MHz |
   | `CL_DEVICE_PROFILING_TIMER_RESOLUTION` | $(BenchmarkTools.prettytime(info_device.profiling_timer_resolution)) |
 """
+
+# ╔═╡ 5932765a-f69c-4281-80a0-dab181492b98
+section("Examples")
 
 # ╔═╡ 7f24b243-c4d0-4ff7-9289-74eafcd6b617
 frametitle("Vectorized sum")
@@ -271,6 +280,19 @@ copy_to_local_code = code(Example("OpenCL/sum/copy_to_local.cl"));
 # ╔═╡ 236e17f9-5c4a-471d-97d0-e8e57abb6c10
 codesnippet(copy_to_local_code)
 
+# ╔═╡ 8181ffb4-57db-494f-b749-dd937608800b
+section("Reduction on GPU")
+
+# ╔═╡ b13fdb24-1593-438a-a282-600750a5731c
+md"""
+Many operations can be framed in terms of a [MapReduce](https://en.wikipedia.org/wiki/MapReduce) operation.
+* Given a vector of data
+* It first map each elements through a given function
+* It then reduces the results into a single element
+
+The mapping part is easily embarassingly parallel but the reduction is harder to parallelize. Let's see how this reduction step can be achieved using arguably the simplest example of `mapreduce`, the sum (corresponding to an identity map and a reduction with `+`).
+"""
+
 # ╔═╡ ed441d0c-7f33-4c61-846c-a60195a77f97
 frametitle("Sum")
 
@@ -330,11 +352,49 @@ frametitle("Back to SIMD")
 
 # ╔═╡ 9ed8f1ba-8c9b-4d9d-b73c-66b327dc13a5
 md"""
-* Here called Single Instruction Multiple Threads (SIMT)
-  - [CUDA Warp](https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/) : width of 32 threads
-  - AMD wavefront : width of 64 threads
-  - In general : [`CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE`](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetKernelWorkGroupInfo.html)
+* Also called Single Instruction Multiple Threads (SIMT)
+* [CUDA Warp](https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/) : width of 32 threads
+* AMD wavefront : width of 64 threads
+* In general : [`CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE`](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetKernelWorkGroupInfo.html)
+* Consecutive `get_local_id()` starting from 0
+  - So the thread of local id from 0 to 31 are in the same CUDA warp.
+* Threads execute the **same instruction** at the same time.
 """
+
+# ╔═╡ d8943644-3795-4761-8021-8dafe7c358a9
+frametitle("Warp divergence")
+
+# ╔═╡ fca83c6f-bb3b-4b30-9050-fc365be9f3ec
+md"Suppose a kernel is executed on a nvidia GPU with `global_size` threads. How much time will it take to execute it ?"
+
+# ╔═╡ 4d7e430d-8106-4f69-8c36-608754f223e5
+cl"""
+__kernel void diverge(n)
+{
+  int item = get_local_id(0);
+  if (item < n) {
+    do_task_A(); // `a` ns
+  } else {
+    do_task_B(); // `b` ns
+  }
+}
+"""
+
+# ╔═╡ c9f81594-93f9-431d-812e-c30d51c74002
+Foldable(
+	md"How much time will it take to execute it if `global_size` is 32 and `n` is 16 ?",
+	md"""
+There are 32 threads so they are on the same warp. However, they are not executing the same instructions so `do_task_A` and `do_task_B` cannot be run in parallel. The total time will then be `a + b ns`.
+"""
+)
+
+# ╔═╡ 8bc85b9b-a74e-4c6a-a8e1-0cfc57856ab5
+Foldable(
+	md"How much time will it take to execute it if `global_size` is 32 and `n` is 16 ?",
+	md"""
+There are 64 threads so they are on two different warps. All the threads of the first warp satisfy `item < 32` so they all execute `do_task_A`. All the threads of the second one go to the `else` clause so they all execute `do_task_B`. So all the threads in each task execute the same instructions and the two warps can execute in parallel. The total time will then be `max(a, b) ns`.
+"""
+)
 
 # ╔═╡ 09f6479a-bc27-436c-a3b3-12b84e084a86
 frametitle("Utils")
@@ -531,6 +591,7 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╔═╡ Cell order:
 # ╟─2861935c-c989-434b-996f-f2c99d785315
 # ╟─6a09a11c-6ddd-4302-b371-7a947f339b52
+# ╟─093f3598-0fbc-4236-af12-d02d361bde1b
 # ╟─2b7036fe-2cd6-45bb-8124-b805b85fd0ba
 # ╟─d235c08c-5508-4da1-9863-dcc75775b28d
 # ╟─a3f31283-1054-4abe-9ec3-1e753905b83f
@@ -548,11 +609,13 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─269eadc2-77ea-4329-ae77-a2df4d2af8cb
 # ╠═7e29d33b-9956-4663-9985-b89923fbf1f8
 # ╟─05372b0b-f03c-4b50-99c2-51559da18137
+# ╟─b8f2ae64-8e2a-4ac3-9635-4761077cb834
 # ╟─7c6a4307-610b-461e-b63a-e1b10fade204
 # ╟─ff473748-ed4a-4cef-9681-10ba978a3525
 # ╟─6e8e7d28-f788-4fd7-80f9-1594d0502ad0
 # ╟─0e932c41-691c-4a0a-b2e7-d2e2972de5b8
 # ╟─c7ba2764-0921-4426-96be-6d7cf323684b
+# ╟─5932765a-f69c-4281-80a0-dab181492b98
 # ╟─7f24b243-c4d0-4ff7-9289-74eafcd6b617
 # ╟─e1435446-a7ea-4a51-b7cd-60a526f3b0ef
 # ╟─c9832cda-cb4a-4ffd-b093-ea440e85de20
@@ -595,6 +658,8 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─e5232de1-fb2f-492e-bee2-1911a662eabe
 # ╟─f1e52b53-f0c7-4f51-a09f-4284830bce40
 # ╟─fb8cfe2a-7e0d-4258-bd4a-ae7193dacfdd
+# ╟─8181ffb4-57db-494f-b749-dd937608800b
+# ╟─b13fdb24-1593-438a-a282-600750a5731c
 # ╟─ed441d0c-7f33-4c61-846c-a60195a77f97
 # ╠═9cb2ba52-3602-4a01-9b47-2db2552ad4c5
 # ╠═162d84a4-1782-4fe0-8829-0b2f0aab1c4a
@@ -616,7 +681,12 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─328db68d-aa1e-456b-9fed-65c4527e7f37
 # ╟─d1c5c1e6-ab41-45b7-9983-e36a444105ee
 # ╟─8e9911a9-337e-49ab-a6ef-5cbffea8b227
-# ╠═9ed8f1ba-8c9b-4d9d-b73c-66b327dc13a5
+# ╟─9ed8f1ba-8c9b-4d9d-b73c-66b327dc13a5
+# ╟─d8943644-3795-4761-8021-8dafe7c358a9
+# ╟─fca83c6f-bb3b-4b30-9050-fc365be9f3ec
+# ╟─4d7e430d-8106-4f69-8c36-608754f223e5
+# ╟─c9f81594-93f9-431d-812e-c30d51c74002
+# ╟─8bc85b9b-a74e-4c6a-a8e1-0cfc57856ab5
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
 # ╠═e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
 # ╠═e4f9813d-e171-4d04-870a-3802e0ee1728
