@@ -40,6 +40,8 @@ Sources
 * [HandsOnOpenCL](https://github.com/HandsOnOpenCL/Lecture-Slides)
 * [Optimizing Parallel Reduction in CUDA](https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf)
 * [Parallel Computation Patterns (Reduction)](sshuttle -r manneback 10.3.221.102/16)
+* [Profiling, debugging and optimization](https://indico.ijs.si/event/1183/sessions/171/attachments/1065/1362/EuroCC_Intro_to_parallel_programming_accelerators_pt-2.pdf)
+* [How to use TAU for Performance Analysis](https://www.olcf.ornl.gov/wp-content/uploads/2019/08/3_tau_day_1.pdf)
 """
 
 # ╔═╡ 093f3598-0fbc-4236-af12-d02d361bde1b
