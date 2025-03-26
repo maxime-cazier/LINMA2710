@@ -331,6 +331,14 @@ Foldable(
 	codesnippet(local_sum_code),
 )
 
+# ╔═╡ b275155c-c876-4ec0-b2e4-2c87f248562f
+Foldable(
+	md"Was it beneficial in terms of performance for GPUs like in the case of OpenMP ?",
+	md"""
+No, GPU threads are much cheaper and easier to synchronize than threads running on different CPU cores like we had in the OpenMP lecture.
+""",
+)
+
 # ╔═╡ 901cb94a-1cf1-4193-805c-b04d4feb51d2
 aside((@bind block_local_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
 
@@ -360,7 +368,7 @@ md"""
 * In general : [`CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE`](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetKernelWorkGroupInfo.html)
 * Consecutive `get_local_id()` starting from 0
   - So the thread of local id from 0 to 31 are in the same CUDA warp.
-* Threads execute the **same instruction** at the same time.
+* Threads execute the **same instruction** at the same time so no need for `barrier`.
 """
 
 # ╔═╡ d8943644-3795-4761-8021-8dafe7c358a9
@@ -397,6 +405,28 @@ Foldable(
 There are 64 threads so they are on two different warps. All the threads of the first warp satisfy `item < 32` so they all execute `do_task_A`. All the threads of the second one go to the `else` clause so they all execute `do_task_B`. So all the threads in each task execute the same instructions and the two warps can execute in parallel. The total time will then be `max(a, b) ns`.
 """
 )
+
+# ╔═╡ 501b4fff-4905-4663-9cf5-d094761a27d2
+md"Are the threads that are still active in the same warp for you sum example ?"
+
+# ╔═╡ 48ae3222-cf66-487f-9d9e-09ae601d425b
+frametitle("Warp diversion for our sum")
+
+# ╔═╡ fff22d71-2732-4206-8bed-26dee00d6c48
+Foldable(
+	md"We are still using different warps until the end. Is that a good thing ?",
+	md"""
+No. First, we need to use a `barrier` until the end so it will not be good for performance. Furthermore, most of the threads of each warps are unused which also means that we use more warps than necessary. This is wasteful in terms of performance as these other warps could be used for something else but also for power consumption as a warp consume as much whether all its threads are used or not.
+""")
+
+# ╔═╡ 1933ee88-c6cc-460b-938b-9046e6fc8f67
+md"How should we change the sum to keep the working threads on the same warp ?"
+
+# ╔═╡ 954d5f75-e7cd-4d8c-b07a-018b1f5a8b70
+frametitle("No warp divergence")
+
+# ╔═╡ da8ffc39-d7ca-46da-81c8-f172c853427c
+md"Now the same warp is used for all threads so we don't need `barrier` and it frees other warps to stay idle (reducing power consumption) or do other tasks."
 
 # ╔═╡ 09f6479a-bc27-436c-a3b3-12b84e084a86
 frametitle("Utils")
@@ -585,10 +615,58 @@ block_local_sum(block_vec, factor)
 Pkg.instantiate()
 
 # ╔═╡ 3ce993a9-8354-47a5-8c63-ff0b0b70caa5
-import CairoMakie # not `using`  as `Slider` collides with PlutoUI
+import Random, CairoMakie # not `using`  as `Slider` collides with PlutoUI
 
 # ╔═╡ 81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
 aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
+
+# ╔═╡ aa51b708-525e-467f-a20f-45e860c206cc
+function reduce(n, good; x_scale = 30, y_scale = 160, offset = 0.1, thread_hue = "orange")
+	off(a, b) = a + sign(b - a) * offset
+	p(i, j) = Point((i - 2^n/2) * x_scale, (j - n/2) * y_scale)
+	c(m, i, j; kws...) = boxed(m, (p(i, j)); kws...)
+	a(i1, j1, i2, j2) = arrow(p(off(i1, i1 + sign(i2 - i1)), off(j1, j2)), p(off(i2, i1), off(j2, j1)))
+	function ac(i1, j1, i2, j2, m)
+		a(i1, j1, i2, j2)
+		c(m, i2, j2)
+	end
+	Random.seed!(0)
+	v = rand(-3:3, 2^n)
+	@draw begin
+		fontsize(24)
+		for k in 0:n
+			if good
+				stride = 2^(n-k)
+			else
+				stride = 2^k
+			end
+			for i in (good ? (1:stride) : (1:stride:2^n))
+				if k > 0
+					a(i, k - 1, i, k-1/2)
+					j = i + (good ? stride : div(stride, 2))
+					a(j, k - 1, i, k-1/2)
+					v[i] += v[j]
+					c(string(i - 1), i, k - 1 / 2, hue = thread_hue)
+					a(i, k - 1/2, i, k)
+				end
+				c(string(v[i]), i, k)
+			end
+		end
+		c("Value", 2^n - 4, n - 1)
+		c("Work item", 2^n - 4, n - 1/2, hue = thread_hue)
+		setdash("dash")
+		sethue("blue")
+		line(p(32, -1), p(32, n+1), action = :stroke)
+		fontsize(42)
+		text("Warp", p(33, n))
+	end (2^n + 1) * x_scale (n + 1/2) * y_scale
+end;
+
+# ╔═╡ 1a101883-a9ab-480b-8716-e75ac1b9db38
+reduce(6, false)
+
+# ╔═╡ 5ca18dbb-c10b-4953-a46c-41a46c0d80a3
+reduce(6, true)
 
 # ╔═╡ Cell order:
 # ╟─2861935c-c989-434b-996f-f2c99d785315
@@ -639,8 +717,8 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─322b070d-4a1e-4e8b-80fe-85b1f69c451e
 # ╠═6144d563-10c6-449b-a20e-92c2b11da4e6
 # ╟─b525aeff-5d9f-49bf-b948-dc8de3f23c5d
-# ╠═c3db554a-a910-404d-b54c-5d24c20b9800
-# ╠═4eee8256-c989-47f4-94b8-9ad1b3f89357
+# ╟─c3db554a-a910-404d-b54c-5d24c20b9800
+# ╟─4eee8256-c989-47f4-94b8-9ad1b3f89357
 # ╟─1fc9096b-52f9-4a4b-a3aa-388fd1e427dc
 # ╟─64359922-c9ce-48a3-9f93-1626251e3d2d
 # ╟─948a2fe6-1dfc-4d8a-a754-cff40756fe9d
@@ -676,6 +754,7 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╠═d945e9c5-5965-4859-9efb-0a356763ee6f
 # ╠═b151cf64-7297-44a1-ad7e-a6c9505ff7df
 # ╟─040af2e8-fc93-40e6-a0f1-70c96d864609
+# ╟─b275155c-c876-4ec0-b2e4-2c87f248562f
 # ╟─0855eaeb-c6e4-40f9-80d2-930c960bbd3c
 # ╟─901cb94a-1cf1-4193-805c-b04d4feb51d2
 # ╟─1aa810e8-6017-4ed8-af33-5ea58f9393f3
@@ -689,6 +768,15 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─4d7e430d-8106-4f69-8c36-608754f223e5
 # ╟─c9f81594-93f9-431d-812e-c30d51c74002
 # ╟─8bc85b9b-a74e-4c6a-a8e1-0cfc57856ab5
+# ╟─501b4fff-4905-4663-9cf5-d094761a27d2
+# ╟─48ae3222-cf66-487f-9d9e-09ae601d425b
+# ╟─fff22d71-2732-4206-8bed-26dee00d6c48
+# ╟─1a101883-a9ab-480b-8716-e75ac1b9db38
+# ╟─1933ee88-c6cc-460b-938b-9046e6fc8f67
+# ╟─954d5f75-e7cd-4d8c-b07a-018b1f5a8b70
+# ╟─da8ffc39-d7ca-46da-81c8-f172c853427c
+# ╟─5ca18dbb-c10b-4953-a46c-41a46c0d80a3
+# ╟─aa51b708-525e-467f-a20f-45e860c206cc
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
 # ╠═e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
 # ╠═e4f9813d-e171-4d04-870a-3802e0ee1728
