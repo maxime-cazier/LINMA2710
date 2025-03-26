@@ -232,6 +232,45 @@ aside((@bind π_device Select([d => d.name for d in cl.devices(π_platform)])), 
 # ╔═╡ b525aeff-5d9f-49bf-b948-dc8de3f23c5d
 Foldable(md"How to compute π with a kernel ?", codesnippet(π_code))
 
+# ╔═╡ 948a2fe6-1dfc-4d8a-a754-cff40756fe9d
+frametitle("First element")
+
+# ╔═╡ 964e125c-5d09-49c0-bd24-1c25568eb661
+md"Let's write a simple kernel that returns the first element of a vector in global memory."
+
+# ╔═╡ 8d5446c4-d283-4774-833f-338b5361fa7e
+aside((@bind first_el_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
+
+# ╔═╡ ec2536b2-7198-4986-acd2-8ffd300a9ace
+aside((@bind first_el_device Select([d => d.name for d in cl.devices(first_el_platform)])), v_offset = -400)
+
+# ╔═╡ 124c0aa7-7e82-461e-a000-a47f387ddfd4
+aside(md"`first_el_len` = $(@bind first_el_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ a88cc545-7780-47b2-9eb8-a5a39d5d8f0e
+first_el_code = code(Example("OpenCL/sum/first_el.cl"));
+
+# ╔═╡ e6e73837-a474-45ce-8fee-14479a0ebe7f
+codesnippet(first_el_code)
+
+# ╔═╡ c61c2407-b9c7-4eb6-a056-54b69ec01540
+frametitle("Copy to local memory")
+
+# ╔═╡ 19869f7f-cc98-45d5-aec4-64faa40e5ede
+aside((@bind copy_to_local_platform Select([p => p.name for p in cl.platforms()])), v_offset = -300)
+
+# ╔═╡ e5232de1-fb2f-492e-bee2-1911a662eabe
+aside((@bind copy_to_local_device Select([d => d.name for d in cl.devices(copy_to_local_platform)])), v_offset = -300)
+
+# ╔═╡ f1e52b53-f0c7-4f51-a09f-4284830bce40
+aside(md"`copy_to_local_len` = $(@bind copy_to_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -300)
+
+# ╔═╡ fb8cfe2a-7e0d-4258-bd4a-ae7193dacfdd
+copy_to_local_code = code(Example("OpenCL/sum/copy_to_local.cl"));
+
+# ╔═╡ 236e17f9-5c4a-471d-97d0-e8e57abb6c10
+codesnippet(copy_to_local_code)
+
 # ╔═╡ ed441d0c-7f33-4c61-846c-a60195a77f97
 frametitle("Sum")
 
@@ -259,6 +298,9 @@ Foldable(
 	codesnippet(local_sum_code),
 )
 
+# ╔═╡ d2de3aca-47e3-48be-8e37-5dd55338b4ce
+frametitle("Blocked sum")
+
 # ╔═╡ 040af2e8-fc93-40e6-a0f1-70c96d864609
 Foldable(
 	md"How to reduce the amount of `barrier` synchronizations ?",
@@ -283,8 +325,25 @@ aside(md"`factor` = $(@bind factor Slider((2).^(1:9), default = 16, show_value =
 # ╔═╡ d1c5c1e6-ab41-45b7-9983-e36a444105ee
 block_local_sum_code = code(Example("OpenCL/sum/block_local_sum.cl"));
 
+# ╔═╡ 8e9911a9-337e-49ab-a6ef-5cbffea8b227
+frametitle("Back to SIMD")
+
+# ╔═╡ 9ed8f1ba-8c9b-4d9d-b73c-66b327dc13a5
+md"""
+* Here called Single Instruction Multiple Threads (SIMT)
+  - [CUDA Warp](https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/) : width of 32 threads
+  - AMD wavefront : width of 64 threads
+  - In general : [`CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE`](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetKernelWorkGroupInfo.html)
+"""
+
 # ╔═╡ 09f6479a-bc27-436c-a3b3-12b84e084a86
 frametitle("Utils")
+
+# ╔═╡ e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
+_pretty_time(x) = BenchmarkTools.prettytime(minimum(x))
+
+# ╔═╡ 1c9f78c8-e71d-4bfa-a879-c1ea58d95886
+md"`num_runs` = $(@bind num_runs Slider(1:100, default=10, show_value = true))"
 
 # ╔═╡ e4f9813d-e171-4d04-870a-3802e0ee1728
 function timed_clcall(kernel, args...; kws...)
@@ -297,16 +356,23 @@ function timed_clcall(kernel, args...; kws...)
 	println("CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE | ", info.prefered_size_multiple)
 
 	# `:profile` sets `CL_QUEUE_PROFILING_ENABLE` to the command queue
+	queued_submit = Float64[]
+	submit_start = Float64[]
+	start_end = Float64[]
 	cl.queue!(:profile) do
-        evt = clcall(kernel, args...; kws...)
-        wait(evt)
+		for _ in 1:num_runs
+        	evt = clcall(kernel, args...; kws...)
+        	wait(evt)
 	
-		# See https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetEventProfilingInfo.html
-        t = evt.profile_duration
-		println("Send command from host to device  | $(BenchmarkTools.prettytime(evt.profile_submit - evt.profile_queued))")
-		println("Including data transfer           | $(BenchmarkTools.prettytime(evt.profile_start - evt.profile_submit))")
-        println("Execution of kernel               | $(BenchmarkTools.prettytime(evt.profile_end - evt.profile_start))")
+			# See https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetEventProfilingInfo.html
+			push!(queued_submit, evt.profile_submit - evt.profile_queued)
+			push!(submit_start, evt.profile_start - evt.profile_submit)
+			push!(start_end, evt.profile_end - evt.profile_start)
+		end
 	end
+	println("Send command from host to device  | $(_pretty_time(queued_submit))")
+	println("Including data transfer           | $(_pretty_time(submit_start))")
+    println("Execution of kernel               | $(_pretty_time(start_end))")
 end
 
 # ╔═╡ 8bcfca40-b4b6-4ef6-94a9-dbdba8b6ca7b
@@ -387,6 +453,36 @@ end
 # ╔═╡ 6144d563-10c6-449b-a20e-92c2b11da4e6
 mypi()
 
+# ╔═╡ 38f12061-5308-4e57-9064-af19f97e1bae
+function first_el(x::Vector{T}) where {T}
+	cl.device!(first_el_device)
+	result = CLArray(zeros(T, 1))
+
+    prg = cl.Program(; source = first_el_code.code) |> cl.build!
+    k = cl.Kernel(prg, "first_el")
+
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}}, CLArray(x), result; global_size=length(x))
+
+	return Array(result)[]
+end
+
+# ╔═╡ df052a84-5065-40fe-9828-dfa60b936482
+first_el(rand(Float32, first_el_len))
+
+# ╔═╡ c8794d8d-c3da-4761-8360-e8e8b71d1b06
+function copy_to_local(x::Vector{T}) where {T}
+	cl.device!(first_el_device)
+	local_x = cl.LocalMem(T, length(x))
+
+    prg = cl.Program(; source = copy_to_local_code.code) |> cl.build!
+    k = cl.Kernel(prg, "copy_to_local")
+
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}}, CLArray(x), local_x; global_size=length(x))
+end
+
+# ╔═╡ 8f88521c-4793-4b50-8bbc-8d799336a5ec
+copy_to_local(rand(Float32, copy_to_local_len))
+
 # ╔═╡ 9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
 function local_sum(x::Vector{T}) where {T}
 	cl.device!(local_device)
@@ -421,7 +517,7 @@ function block_local_sum(x::Vector{T}, factor) where {T}
 end
 
 # ╔═╡ b151cf64-7297-44a1-ad7e-a6c9505ff7df
-block_local_sum(vec, factor)
+block_local_sum(block_vec, factor)
 
 # ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
 Pkg.instantiate()
@@ -482,6 +578,23 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╠═4eee8256-c989-47f4-94b8-9ad1b3f89357
 # ╟─1fc9096b-52f9-4a4b-a3aa-388fd1e427dc
 # ╟─64359922-c9ce-48a3-9f93-1626251e3d2d
+# ╟─948a2fe6-1dfc-4d8a-a754-cff40756fe9d
+# ╟─964e125c-5d09-49c0-bd24-1c25568eb661
+# ╟─e6e73837-a474-45ce-8fee-14479a0ebe7f
+# ╠═df052a84-5065-40fe-9828-dfa60b936482
+# ╟─38f12061-5308-4e57-9064-af19f97e1bae
+# ╟─8d5446c4-d283-4774-833f-338b5361fa7e
+# ╟─ec2536b2-7198-4986-acd2-8ffd300a9ace
+# ╟─124c0aa7-7e82-461e-a000-a47f387ddfd4
+# ╟─a88cc545-7780-47b2-9eb8-a5a39d5d8f0e
+# ╟─c61c2407-b9c7-4eb6-a056-54b69ec01540
+# ╟─236e17f9-5c4a-471d-97d0-e8e57abb6c10
+# ╟─8f88521c-4793-4b50-8bbc-8d799336a5ec
+# ╟─c8794d8d-c3da-4761-8360-e8e8b71d1b06
+# ╟─19869f7f-cc98-45d5-aec4-64faa40e5ede
+# ╟─e5232de1-fb2f-492e-bee2-1911a662eabe
+# ╟─f1e52b53-f0c7-4f51-a09f-4284830bce40
+# ╟─fb8cfe2a-7e0d-4258-bd4a-ae7193dacfdd
 # ╟─ed441d0c-7f33-4c61-846c-a60195a77f97
 # ╠═9cb2ba52-3602-4a01-9b47-2db2552ad4c5
 # ╠═162d84a4-1782-4fe0-8829-0b2f0aab1c4a
@@ -491,18 +604,23 @@ aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 # ╟─15418031-5e3d-419a-aa92-8f2b69593c69
 # ╟─5a9e881e-479c-4b5a-af0a-8f543bf981f3
 # ╟─15bd7314-9ce8-4042-aea8-1c6a736d12a7
-# ╠═cefe3234-28ef-4591-87ad-a4b3468610d7
+# ╟─cefe3234-28ef-4591-87ad-a4b3468610d7
+# ╟─d2de3aca-47e3-48be-8e37-5dd55338b4ce
 # ╠═d945e9c5-5965-4859-9efb-0a356763ee6f
 # ╠═b151cf64-7297-44a1-ad7e-a6c9505ff7df
 # ╟─040af2e8-fc93-40e6-a0f1-70c96d864609
-# ╠═0855eaeb-c6e4-40f9-80d2-930c960bbd3c
+# ╟─0855eaeb-c6e4-40f9-80d2-930c960bbd3c
 # ╟─901cb94a-1cf1-4193-805c-b04d4feb51d2
 # ╟─1aa810e8-6017-4ed8-af33-5ea58f9393f3
 # ╟─609e5894-db5b-48f9-bc4a-9224f40012c2
 # ╟─328db68d-aa1e-456b-9fed-65c4527e7f37
-# ╠═d1c5c1e6-ab41-45b7-9983-e36a444105ee
+# ╟─d1c5c1e6-ab41-45b7-9983-e36a444105ee
+# ╟─8e9911a9-337e-49ab-a6ef-5cbffea8b227
+# ╠═9ed8f1ba-8c9b-4d9d-b73c-66b327dc13a5
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
+# ╠═e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
 # ╠═e4f9813d-e171-4d04-870a-3802e0ee1728
+# ╟─1c9f78c8-e71d-4bfa-a879-c1ea58d95886
 # ╟─7f00bb10-fe5b-11ef-0aeb-dd2bd85aac10
 # ╟─8dcb5cf0-d579-42ba-ba4d-41c599587975
 # ╟─a4db4017-9ecd-4b03-9127-2c75e5d2c537
