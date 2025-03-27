@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=pluto_gpu1
 #SBATCH --ntasks=1
-#SBATCH --time=2:00:00
+#SBATCH --time=3:30:00
 #SBATCH --mem-per-cpu=10000
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1

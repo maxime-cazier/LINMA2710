@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    quote
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -273,8 +273,11 @@ aside((@bind copy_to_local_platform Select([p => p.name for p in cl.platforms()]
 # ╔═╡ e5232de1-fb2f-492e-bee2-1911a662eabe
 aside((@bind copy_to_local_device Select([d => d.name for d in cl.devices(copy_to_local_platform)])), v_offset = -300)
 
-# ╔═╡ f1e52b53-f0c7-4f51-a09f-4284830bce40
-aside(md"`copy_to_local_len` = $(@bind copy_to_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -300)
+# ╔═╡ 7fcce948-ccd0-4276-bb8f-f4fd27fbf1e8
+aside(md"`copy_global_len` = $(@bind copy_global_len Slider((2).^(1:16), default = 16, show_value = true))", v_offset = -300)
+
+# ╔═╡ 154a0565-13ad-4fe1-8f3e-9c8c0ed83ca4
+aside(md"`copy_local_len` = $(@bind copy_local_len Slider((2).^(1:min(8, round(Int, log2(copy_global_len)))), default = min(256, copy_global_len), show_value = true))", v_offset = -300)
 
 # ╔═╡ fb8cfe2a-7e0d-4258-bd4a-ae7193dacfdd
 copy_to_local_code = code(Example("OpenCL/sum/copy_to_local.cl"));
@@ -304,8 +307,11 @@ aside((@bind local_platform Select([p => p.name for p in cl.platforms()])), v_of
 # ╔═╡ 5a9e881e-479c-4b5a-af0a-8f543bf981f3
 aside((@bind local_device Select([d => d.name for d in cl.devices(local_platform)])), v_offset = -400)
 
+# ╔═╡ 4293e21c-ffd1-4bf8-8797-23b0dec5a0c3
+aside(md"`global_len` = $(@bind global_len Slider((2).^(1:16), default = 16, show_value = true))", v_offset = -400)
+
 # ╔═╡ 15bd7314-9ce8-4042-aea8-1c6a736d12a7
-aside(md"`local_len` = $(@bind local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+aside(md"`local_len` = $(@bind local_len Slider((2).^(1:min(8, round(Int, log2(global_len)))), default = min(256, global_len), show_value = true))", v_offset = -400)
 
 # ╔═╡ cefe3234-28ef-4591-87ad-a4b3468610d7
 local_code = code(Example("OpenCL/sum/local_sum.cl"));
@@ -333,8 +339,11 @@ aside((@bind block_local_platform Select([p => p.name for p in cl.platforms()]))
 # ╔═╡ 1aa810e8-6017-4ed8-af33-5ea58f9393f3
 aside((@bind block_local_device Select([d => d.name for d in cl.devices(block_local_platform)])), v_offset = -400)
 
-# ╔═╡ 609e5894-db5b-48f9-bc4a-9224f40012c2
-aside(md"`block_local_len` = $(@bind block_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+# ╔═╡ 93453907-4072-4ae9-9fb9-38c859bd21a3
+aside(md"`block_global_len` = $(@bind block_global_len Slider((2).^(1:16), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ 11fb0663-b61d-41fc-9688-b31ff283df23
+aside(md"`block_local_len` = $(@bind block_local_len Slider((2).^(1:min(8, round(Int, log2(block_global_len)))), default = min(256, block_global_len), show_value = true))", v_offset = -400)
 
 # ╔═╡ 328db68d-aa1e-456b-9fed-65c4527e7f37
 aside(md"`factor` = $(@bind factor Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
@@ -429,7 +438,10 @@ aside((@bind reordered_local_platform Select([p => p.name for p in cl.platforms(
 aside((@bind reordered_local_device Select([d => d.name for d in cl.devices(reordered_local_platform)])), v_offset = -400)
 
 # ╔═╡ fd21958c-8e56-48dd-9327-f79b51860785
-aside(md"`reordered_local_len` = $(@bind reordered_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+aside(md"`reordered_global_size` = $(@bind reordered_global_size Slider((2).^(1:16), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ 8f7c528e-7a1e-4f78-9e2d-39b0522d3287
+aside(md"`reordered_local_size` = $(@bind reordered_local_size Slider((2).^(1:min(8, round(Int, log2(reordered_global_size)))), default = min(256, reordered_global_size), show_value = true))", v_offset = -400)
 
 # ╔═╡ bc42547f-5b8a-4b18-8f04-04fcd67bd61b
 reordered_local_sum_code = code(Example("OpenCL/sum/reordered_local_sum.cl"));
@@ -446,8 +458,11 @@ aside((@bind simt_platform Select([p => p.name for p in cl.platforms()])), v_off
 # ╔═╡ 335ab0f7-91ac-407d-a5c8-2455ee38bf5a
 aside((@bind simt_device Select([d => d.name for d in cl.devices(simt_platform)])), v_offset = -400)
 
-# ╔═╡ 89075f19-4572-45f7-a387-40045a581483
-aside(md"`simt_len` = $(@bind simt_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+# ╔═╡ 0ae62b2b-25e7-41e7-bafc-6c2efb4a5c27
+aside(md"`simt_global_size` = $(@bind simt_global_size Slider((2).^(1:16), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ ce06cd23-4d7d-43c9-80a4-119ac9ab2c30
+aside(md"`simt_local_size` = $(@bind simt_local_size Slider((2).^(1:min(8, round(Int, log2(simt_global_size)))), default = min(256, simt_global_size), show_value = true))", v_offset = -400)
 
 # ╔═╡ 27e92271-9c5a-42a9-a522-946d1ad5b676
 aside(danger(md"POCL does not synchronize, even for `simt_len <= 8`"), v_offset = -400)
@@ -457,6 +472,9 @@ aside(
 	Foldable(md"Why do we need `volatile` ?", md"`barrier(CLK_LOCAL_MEM_FENCE)` does two synchronizations: It first makes sure that all threads reach the barriers but it also makes sure that their register memory are synced with the local memory. In a SIMT unit, they are always at the same instruction but they may have values in a register that is not synced with the local memory. `volatile` makes sure that the local memory stays in sync."),
 	v_offset = -300,
 )
+
+# ╔═╡ 1d84c896-5208-4d50-9fdd-b82a2233f834
+Foldable(md"Why don't we check any condition on `item`, aren't some thread computing data that won't be used ?", md"As a SIMT unit is the smallest unit of computation, even if only on thread is executing, it's all SIMT unit will be executing anyway. So it's better to save the evaluation of the `if` condition if all the threads are in the same SIMT unit anyway.")
 
 # ╔═╡ d97d7a7e-c4f5-4675-a40e-05289a55927c
 simt_code = code(Example("OpenCL/sum/warp.cl"));
@@ -479,8 +497,11 @@ aside((@bind unrolled_platform Select([p => p.name for p in cl.platforms()])), v
 # ╔═╡ 79935f80-8c05-4849-8489-ea5c279a6e05
 aside((@bind unrolled_device Select([d => d.name for d in cl.devices(unrolled_platform)])), v_offset = -400)
 
-# ╔═╡ 4f83f156-8238-48ce-8e91-2345dcc367cd
-aside(md"`unrolled_len` = $(@bind unrolled_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+# ╔═╡ 8603d859-9f64-4932-a02f-32ba4258174c
+aside(md"`unrolled_global_size` = $(@bind unrolled_global_size Slider((2).^(1:16), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ c99f5342-4536-4d89-828c-2f70934c4b0c
+aside(md"`unrolled_local_size` = $(@bind unrolled_local_size Slider((2).^(1:min(8, round(Int, log2(unrolled_global_size)))), default = min(256, unrolled_global_size), show_value = true))", v_offset = -400)
 
 # ╔═╡ c73b5b7b-b017-4692-860f-a98ac7a3cd5e
 unrolled_code = code(Example("OpenCL/sum/unrolled.cl"));
@@ -625,18 +646,20 @@ end
 first_el(rand(Float32, first_el_len))
 
 # ╔═╡ c8794d8d-c3da-4761-8360-e8e8b71d1b06
-function copy_to_local(x::Vector{T}) where {T}
+function copy_to_local(global_size, local_size)
 	cl.device!(first_el_device)
-	local_x = cl.LocalMem(T, length(x))
+	T = Float32
+	x = rand(T, global_size)
+	local_x = cl.LocalMem(T, local_size)
 
     prg = cl.Program(; source = copy_to_local_code.code) |> cl.build!
     k = cl.Kernel(prg, "copy_to_local")
 
-    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}}, CLArray(x), local_x; global_size=length(x))
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}}, CLArray(x), local_x; global_size, local_size)
 end
 
 # ╔═╡ 8f88521c-4793-4b50-8bbc-8d799336a5ec
-copy_to_local(rand(Float32, copy_to_local_len))
+copy_to_local(copy_global_len, copy_local_len)
 
 # ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
 Pkg.instantiate()
@@ -648,55 +671,55 @@ import Random, CairoMakie # not `using`  as `Slider` collides with PlutoUI
 aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
 
 # ╔═╡ 9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
-function local_sum(len, code, device)
+function local_sum(global_size, local_size, code, device)
 	cl.device!(device)
 	T = Float32
 	Random.seed!(0)
-	x = rand(T, len)
+	x = rand(T, global_size)
     global_x = CLArray(x)
-	local_x = cl.LocalMem(T, length(global_x))
+	local_x = cl.LocalMem(T, local_size)
     result = CLArray(zeros(T, 1))
 
     prg = cl.Program(; source = code.code) |> cl.build!
     k = cl.Kernel(prg, "sum")
 
-    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size, local_size)
 
     return (; OpenCL = Array(result)[], Classical = sum(x))
 end
 
 # ╔═╡ a8f39218-e414-4d0e-a577-5d2a01b13c0c
-local_sum(local_len, local_code, local_device)
+local_sum(global_len, local_len, local_code, local_device)
 
 # ╔═╡ 1028e0b0-8357-4e92-86fc-7357114aba8e
-local_sum(reordered_local_len, reordered_local_sum_code, reordered_local_device)
+local_sum(reordered_global_size, reordered_local_size, reordered_local_sum_code, reordered_local_device)
 
 # ╔═╡ c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
-local_sum(simt_len, simt_code, simt_device)
+local_sum(simt_global_size, simt_local_size, simt_code, simt_device)
 
 # ╔═╡ a553fdca-8a38-47a7-a1c4-fafa4d8e1939
-local_sum(unrolled_len, unrolled_code, unrolled_device)
+local_sum(unrolled_global_size, unrolled_local_size, unrolled_code, unrolled_device)
 
 # ╔═╡ 0855eaeb-c6e4-40f9-80d2-930c960bbd3c
-function block_local_sum(len, factor)
+function block_local_sum(global_size, local_size, factor)
 	cl.device!(block_local_device)
 	T = Float32
 	Random.seed!(0)
-	x = rand(T, len)
+	x = rand(T, global_size)
     global_x = CLArray(x)
-	local_x = cl.LocalMem(T, length(global_x))
+	local_x = cl.LocalMem(T, local_size)
     result = CLArray(zeros(T, 1))
 
     prg = cl.Program(; source = block_local_sum_code.code) |> cl.build!
     k = cl.Kernel(prg, "sum")
 
-    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}, Cint}, global_x, local_x, result, factor; global_size=length(global_x))
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}, Cint}, global_x, local_x, result, factor; global_size, local_size)
 
     return (; OpenCL = Array(result)[], Classical = sum(x))
 end
 
 # ╔═╡ b151cf64-7297-44a1-ad7e-a6c9505ff7df
-block_local_sum(block_local_len, factor)
+block_local_sum(block_global_len, block_local_len, factor)
 
 # ╔═╡ aa51b708-525e-467f-a20f-45e860c206cc
 function reduce(n, good; x_scale = 30, y_scale = 160, offset = 0.1, thread_hue = "orange")
@@ -810,11 +833,12 @@ reduce(6, true)
 # ╟─a88cc545-7780-47b2-9eb8-a5a39d5d8f0e
 # ╟─c61c2407-b9c7-4eb6-a056-54b69ec01540
 # ╟─236e17f9-5c4a-471d-97d0-e8e57abb6c10
-# ╟─8f88521c-4793-4b50-8bbc-8d799336a5ec
+# ╠═8f88521c-4793-4b50-8bbc-8d799336a5ec
 # ╟─c8794d8d-c3da-4761-8360-e8e8b71d1b06
 # ╟─19869f7f-cc98-45d5-aec4-64faa40e5ede
 # ╟─e5232de1-fb2f-492e-bee2-1911a662eabe
-# ╟─f1e52b53-f0c7-4f51-a09f-4284830bce40
+# ╟─7fcce948-ccd0-4276-bb8f-f4fd27fbf1e8
+# ╟─154a0565-13ad-4fe1-8f3e-9c8c0ed83ca4
 # ╟─fb8cfe2a-7e0d-4258-bd4a-ae7193dacfdd
 # ╟─8181ffb4-57db-494f-b749-dd937608800b
 # ╟─b13fdb24-1593-438a-a282-600750a5731c
@@ -824,8 +848,9 @@ reduce(6, true)
 # ╟─9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
 # ╟─15418031-5e3d-419a-aa92-8f2b69593c69
 # ╟─5a9e881e-479c-4b5a-af0a-8f543bf981f3
+# ╟─4293e21c-ffd1-4bf8-8797-23b0dec5a0c3
 # ╟─15bd7314-9ce8-4042-aea8-1c6a736d12a7
-# ╟─cefe3234-28ef-4591-87ad-a4b3468610d7
+# ╠═cefe3234-28ef-4591-87ad-a4b3468610d7
 # ╟─d2de3aca-47e3-48be-8e37-5dd55338b4ce
 # ╠═b151cf64-7297-44a1-ad7e-a6c9505ff7df
 # ╟─040af2e8-fc93-40e6-a0f1-70c96d864609
@@ -833,7 +858,8 @@ reduce(6, true)
 # ╟─0855eaeb-c6e4-40f9-80d2-930c960bbd3c
 # ╟─901cb94a-1cf1-4193-805c-b04d4feb51d2
 # ╟─1aa810e8-6017-4ed8-af33-5ea58f9393f3
-# ╟─609e5894-db5b-48f9-bc4a-9224f40012c2
+# ╟─93453907-4072-4ae9-9fb9-38c859bd21a3
+# ╟─11fb0663-b61d-41fc-9688-b31ff283df23
 # ╟─328db68d-aa1e-456b-9fed-65c4527e7f37
 # ╟─d1c5c1e6-ab41-45b7-9983-e36a444105ee
 # ╟─8e9911a9-337e-49ab-a6ef-5cbffea8b227
@@ -854,17 +880,20 @@ reduce(6, true)
 # ╟─aa51b708-525e-467f-a20f-45e860c206cc
 # ╟─8a999999-0312-4d38-bdc4-2e4b569165a4
 # ╟─69bb37db-054e-48b9-9a7a-307ded792b2b
-# ╠═1028e0b0-8357-4e92-86fc-7357114aba8e
+# ╟─1028e0b0-8357-4e92-86fc-7357114aba8e
 # ╟─d7147373-238f-48c4-9dbd-6be3d6290fab
 # ╟─42f69447-d0f0-44ca-a862-350d3c3dad73
 # ╟─fd21958c-8e56-48dd-9327-f79b51860785
+# ╟─8f7c528e-7a1e-4f78-9e2d-39b0522d3287
 # ╟─bc42547f-5b8a-4b18-8f04-04fcd67bd61b
 # ╟─dede8676-17d8-4cb4-9673-dcb00df7c9e7
 # ╟─124251a9-4052-4e4b-a0b4-1476fd19731d
 # ╠═c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
+# ╟─1d84c896-5208-4d50-9fdd-b82a2233f834
 # ╟─e18d0f97-4339-4388-b9fb-fe58ed701845
 # ╟─335ab0f7-91ac-407d-a5c8-2455ee38bf5a
-# ╟─89075f19-4572-45f7-a387-40045a581483
+# ╟─0ae62b2b-25e7-41e7-bafc-6c2efb4a5c27
+# ╟─ce06cd23-4d7d-43c9-80a4-119ac9ab2c30
 # ╟─27e92271-9c5a-42a9-a522-946d1ad5b676
 # ╟─b099820a-3be5-4bc0-a0da-8564558c61dc
 # ╟─d97d7a7e-c4f5-4675-a40e-05289a55927c
@@ -874,7 +903,8 @@ reduce(6, true)
 # ╟─2ab1717e-afc2-4b1a-86e6-e64143546a94
 # ╟─cf439f0a-5e14-45d6-8611-1b84e7574437
 # ╟─79935f80-8c05-4849-8489-ea5c279a6e05
-# ╟─4f83f156-8238-48ce-8e91-2345dcc367cd
+# ╟─8603d859-9f64-4932-a02f-32ba4258174c
+# ╟─c99f5342-4536-4d89-828c-2f70934c4b0c
 # ╟─c73b5b7b-b017-4692-860f-a98ac7a3cd5e
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
 # ╠═e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
