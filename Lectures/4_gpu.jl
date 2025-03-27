@@ -348,9 +348,6 @@ aside((@bind block_local_device Select([d => d.name for d in cl.devices(block_lo
 # ╔═╡ 609e5894-db5b-48f9-bc4a-9224f40012c2
 aside(md"`block_local_len` = $(@bind block_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
 
-# ╔═╡ d945e9c5-5965-4859-9efb-0a356763ee6f
-block_vec = rand(Float32, block_local_len)
-
 # ╔═╡ 328db68d-aa1e-456b-9fed-65c4527e7f37
 aside(md"`factor` = $(@bind factor Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
 
@@ -428,6 +425,69 @@ frametitle("No warp divergence")
 # ╔═╡ da8ffc39-d7ca-46da-81c8-f172c853427c
 md"Now the same warp is used for all threads so we don't need `barrier` and it frees other warps to stay idle (reducing power consumption) or do other tasks."
 
+# ╔═╡ 8a999999-0312-4d38-bdc4-2e4b569165a4
+frametitle("Reordered local sum")
+
+# ╔═╡ d7147373-238f-48c4-9dbd-6be3d6290fab
+aside((@bind reordered_local_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
+
+# ╔═╡ 42f69447-d0f0-44ca-a862-350d3c3dad73
+aside((@bind reordered_local_device Select([d => d.name for d in cl.devices(reordered_local_platform)])), v_offset = -400)
+
+# ╔═╡ fd21958c-8e56-48dd-9327-f79b51860785
+aside(md"`reordered_local_len` = $(@bind reordered_local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ bc42547f-5b8a-4b18-8f04-04fcd67bd61b
+reordered_local_sum_code = code(Example("OpenCL/sum/reordered_local_sum.cl"));
+
+# ╔═╡ 69bb37db-054e-48b9-9a7a-307ded792b2b
+codesnippet(reordered_local_sum_code)
+
+# ╔═╡ dede8676-17d8-4cb4-9673-dcb00df7c9e7
+frametitle("Warp sum")
+
+# ╔═╡ e18d0f97-4339-4388-b9fb-fe58ed701845
+aside((@bind warp_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
+
+# ╔═╡ 335ab0f7-91ac-407d-a5c8-2455ee38bf5a
+aside((@bind warp_device Select([d => d.name for d in cl.devices(warp_platform)])), v_offset = -400)
+
+# ╔═╡ 89075f19-4572-45f7-a387-40045a581483
+aside(md"`warp_len` = $(@bind warp_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ d97d7a7e-c4f5-4675-a40e-05289a55927c
+warp_sum_code = code(Example("OpenCL/sum/warp.cl"));
+
+# ╔═╡ 124251a9-4052-4e4b-a0b4-1476fd19731d
+codesnippet(warp_sum_code)
+
+# ╔═╡ 0e3a4f79-9d07-46cb-8368-a693304334c1
+frametitle("Unrolled sum")
+
+# ╔═╡ 2ab1717e-afc2-4b1a-86e6-e64143546a94
+Foldable(
+	md"How to have portable code using unrolling ?",
+	md"The compiler could do the unrolling automatically when compiling for a specific platform if it know the relevant sizes at **compile time**.",
+)
+
+# ╔═╡ cf439f0a-5e14-45d6-8611-1b84e7574437
+aside((@bind unrolled_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
+
+# ╔═╡ 79935f80-8c05-4849-8489-ea5c279a6e05
+aside((@bind unrolled_device Select([d => d.name for d in cl.devices(unrolled_platform)])), v_offset = -400)
+
+# ╔═╡ 4f83f156-8238-48ce-8e91-2345dcc367cd
+aside(md"`unrolled_len` = $(@bind unrolled_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ c73b5b7b-b017-4692-860f-a98ac7a3cd5e
+unrolled_code = code(Example("OpenCL/sum/unrolled.cl"));
+
+# ╔═╡ 243570f7-eaa5-4c08-8ac2-004274271e2c
+Foldable(
+	md"How to get even faster performance by assuming that `items` is a power of 2 smaller than 512 and that the SIMT width is 32 ?",
+	codesnippet(unrolled_code),
+)
+
 # ╔═╡ 09f6479a-bc27-436c-a3b3-12b84e084a86
 frametitle("Utils")
 
@@ -435,7 +495,7 @@ frametitle("Utils")
 _pretty_time(x) = BenchmarkTools.prettytime(minimum(x))
 
 # ╔═╡ 1c9f78c8-e71d-4bfa-a879-c1ea58d95886
-md"`num_runs` = $(@bind num_runs Slider(1:100, default=10, show_value = true))"
+md"`num_runs` = $(@bind num_runs Slider(1:100, default=1, show_value = true))"
 
 # ╔═╡ e4f9813d-e171-4d04-870a-3802e0ee1728
 function timed_clcall(kernel, args...; kws...)
@@ -587,7 +647,7 @@ function local_sum(x::Vector{T}) where {T}
 
     timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
 
-    return Array(result)[]
+    return (; OpenCL = Array(result)[], Classical = sum(x))
 end
 
 # ╔═╡ a8f39218-e414-4d0e-a577-5d2a01b13c0c
@@ -605,11 +665,65 @@ function block_local_sum(x::Vector{T}, factor) where {T}
 
     timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}, Cint}, global_x, local_x, result, factor; global_size=length(global_x))
 
-    return Array(result)[]
+    return (; OpenCL = Array(result)[], Classical = sum(x))
 end
 
 # ╔═╡ b151cf64-7297-44a1-ad7e-a6c9505ff7df
-block_local_sum(block_vec, factor)
+block_local_sum(rand(Float32, block_local_len), factor)
+
+# ╔═╡ ebaebae9-aead-41b0-b67a-3b8750324ec1
+function reordered_local_sum(x::Vector{T}) where {T}
+	cl.device!(reordered_local_device)
+    global_x = CLArray(x)
+	local_x = cl.LocalMem(T, length(global_x))
+    result = CLArray(zeros(T, 1))
+
+    prg = cl.Program(; source = reordered_local_sum_code.code) |> cl.build!
+    k = cl.Kernel(prg, "sum")
+
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
+
+    return (; OpenCL = Array(result)[], Classical = sum(x))
+end
+
+# ╔═╡ 1028e0b0-8357-4e92-86fc-7357114aba8e
+reordered_local_sum(rand(Float32, reordered_local_len))
+
+# ╔═╡ 9c3851ff-255f-4acf-9d16-e27c92b11e11
+function warp_sum(x::Vector{T}) where {T}
+	cl.device!(warp_device)
+    global_x = CLArray(x)
+	local_x = cl.LocalMem(T, length(global_x))
+    result = CLArray(zeros(T, 1))
+
+    prg = cl.Program(; source = warp_sum_code.code) |> cl.build!
+    k = cl.Kernel(prg, "sum")
+
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
+
+    return (; OpenCL = Array(result)[], Classical = sum(x))
+end
+
+# ╔═╡ c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
+warp_sum(rand(Float32, warp_len))
+
+# ╔═╡ bdf76270-edc2-42ec-aaa7-e19987a2d63c
+function unrolled_sum(x::Vector{T}) where {T}
+    cl.device!(unrolled_device)
+    global_x = CLArray(x)
+	local_x = cl.LocalMem(T, length(global_x))
+    result = CLArray(zeros(T, 1))
+
+    prg = cl.Program(; source = unrolled_code.code) |> cl.build!
+    k = cl.Kernel(prg, "sum")
+
+    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
+
+    return (; OpenCL = Array(result)[], Classical = sum(x))
+end
+
+# ╔═╡ a553fdca-8a38-47a7-a1c4-fafa4d8e1939
+unrolled_sum(rand(Float32, unrolled_len))
 
 # ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
 Pkg.instantiate()
@@ -751,7 +865,6 @@ reduce(6, true)
 # ╟─15bd7314-9ce8-4042-aea8-1c6a736d12a7
 # ╟─cefe3234-28ef-4591-87ad-a4b3468610d7
 # ╟─d2de3aca-47e3-48be-8e37-5dd55338b4ce
-# ╠═d945e9c5-5965-4859-9efb-0a356763ee6f
 # ╠═b151cf64-7297-44a1-ad7e-a6c9505ff7df
 # ╟─040af2e8-fc93-40e6-a0f1-70c96d864609
 # ╟─b275155c-c876-4ec0-b2e4-2c87f248562f
@@ -777,6 +890,31 @@ reduce(6, true)
 # ╟─da8ffc39-d7ca-46da-81c8-f172c853427c
 # ╟─5ca18dbb-c10b-4953-a46c-41a46c0d80a3
 # ╟─aa51b708-525e-467f-a20f-45e860c206cc
+# ╟─8a999999-0312-4d38-bdc4-2e4b569165a4
+# ╟─69bb37db-054e-48b9-9a7a-307ded792b2b
+# ╟─1028e0b0-8357-4e92-86fc-7357114aba8e
+# ╟─ebaebae9-aead-41b0-b67a-3b8750324ec1
+# ╠═d7147373-238f-48c4-9dbd-6be3d6290fab
+# ╠═42f69447-d0f0-44ca-a862-350d3c3dad73
+# ╠═fd21958c-8e56-48dd-9327-f79b51860785
+# ╟─bc42547f-5b8a-4b18-8f04-04fcd67bd61b
+# ╟─dede8676-17d8-4cb4-9673-dcb00df7c9e7
+# ╟─124251a9-4052-4e4b-a0b4-1476fd19731d
+# ╠═c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
+# ╟─9c3851ff-255f-4acf-9d16-e27c92b11e11
+# ╟─e18d0f97-4339-4388-b9fb-fe58ed701845
+# ╟─335ab0f7-91ac-407d-a5c8-2455ee38bf5a
+# ╟─89075f19-4572-45f7-a387-40045a581483
+# ╠═d97d7a7e-c4f5-4675-a40e-05289a55927c
+# ╟─0e3a4f79-9d07-46cb-8368-a693304334c1
+# ╟─243570f7-eaa5-4c08-8ac2-004274271e2c
+# ╠═a553fdca-8a38-47a7-a1c4-fafa4d8e1939
+# ╟─2ab1717e-afc2-4b1a-86e6-e64143546a94
+# ╟─bdf76270-edc2-42ec-aaa7-e19987a2d63c
+# ╟─cf439f0a-5e14-45d6-8611-1b84e7574437
+# ╟─79935f80-8c05-4849-8489-ea5c279a6e05
+# ╟─4f83f156-8238-48ce-8e91-2345dcc367cd
+# ╠═c73b5b7b-b017-4692-860f-a98ac7a3cd5e
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
 # ╠═e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
 # ╠═e4f9813d-e171-4d04-870a-3802e0ee1728
