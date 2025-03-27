@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    return quote
+    quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -307,29 +307,17 @@ aside((@bind local_device Select([d => d.name for d in cl.devices(local_platform
 # ╔═╡ 15bd7314-9ce8-4042-aea8-1c6a736d12a7
 aside(md"`local_len` = $(@bind local_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
 
-# ╔═╡ 9cb2ba52-3602-4a01-9b47-2db2552ad4c5
-vec = rand(Float32, local_len)
-
-# ╔═╡ 162d84a4-1782-4fe0-8829-0b2f0aab1c4a
-@btime sum(vec)
-
 # ╔═╡ cefe3234-28ef-4591-87ad-a4b3468610d7
-local_sum_code = code(Example("OpenCL/sum/local_sum.cl"));
+local_code = code(Example("OpenCL/sum/local_sum.cl"));
 
 # ╔═╡ 9195adff-cc5d-4504-9a31-ba19b18639a0
 Foldable(
 	md"How to compute the sum an array in **local** memory with a kernel ?",
-	codesnippet(local_sum_code),
+	codesnippet(local_code),
 )
 
 # ╔═╡ d2de3aca-47e3-48be-8e37-5dd55338b4ce
 frametitle("Blocked sum")
-
-# ╔═╡ 040af2e8-fc93-40e6-a0f1-70c96d864609
-Foldable(
-	md"How to reduce the amount of `barrier` synchronizations ?",
-	codesnippet(local_sum_code),
-)
 
 # ╔═╡ b275155c-c876-4ec0-b2e4-2c87f248562f
 Foldable(
@@ -353,6 +341,12 @@ aside(md"`factor` = $(@bind factor Slider((2).^(1:9), default = 16, show_value =
 
 # ╔═╡ d1c5c1e6-ab41-45b7-9983-e36a444105ee
 block_local_sum_code = code(Example("OpenCL/sum/block_local_sum.cl"));
+
+# ╔═╡ 040af2e8-fc93-40e6-a0f1-70c96d864609
+Foldable(
+	md"How to reduce the amount of `barrier` synchronizations ?",
+	codesnippet(block_local_sum_code),
+)
 
 # ╔═╡ 8e9911a9-337e-49ab-a6ef-5cbffea8b227
 frametitle("Back to SIMD")
@@ -444,22 +438,31 @@ reordered_local_sum_code = code(Example("OpenCL/sum/reordered_local_sum.cl"));
 codesnippet(reordered_local_sum_code)
 
 # ╔═╡ dede8676-17d8-4cb4-9673-dcb00df7c9e7
-frametitle("Warp sum")
+frametitle("SIMT sum")
 
 # ╔═╡ e18d0f97-4339-4388-b9fb-fe58ed701845
-aside((@bind warp_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
+aside((@bind simt_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
 
 # ╔═╡ 335ab0f7-91ac-407d-a5c8-2455ee38bf5a
-aside((@bind warp_device Select([d => d.name for d in cl.devices(warp_platform)])), v_offset = -400)
+aside((@bind simt_device Select([d => d.name for d in cl.devices(simt_platform)])), v_offset = -400)
 
 # ╔═╡ 89075f19-4572-45f7-a387-40045a581483
-aside(md"`warp_len` = $(@bind warp_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+aside(md"`simt_len` = $(@bind simt_len Slider((2).^(1:9), default = 16, show_value = true))", v_offset = -400)
+
+# ╔═╡ 27e92271-9c5a-42a9-a522-946d1ad5b676
+aside(danger(md"POCL does not synchronize, even for `simt_len <= 8`"), v_offset = -400)
+
+# ╔═╡ b099820a-3be5-4bc0-a0da-8564558c61dc
+aside(
+	Foldable(md"Why do we need `volatile` ?", md"`barrier(CLK_LOCAL_MEM_FENCE)` does two synchronizations: It first makes sure that all threads reach the barriers but it also makes sure that their register memory are synced with the local memory. In a SIMT unit, they are always at the same instruction but they may have values in a register that is not synced with the local memory. `volatile` makes sure that the local memory stays in sync."),
+	v_offset = -300,
+)
 
 # ╔═╡ d97d7a7e-c4f5-4675-a40e-05289a55927c
-warp_sum_code = code(Example("OpenCL/sum/warp.cl"));
+simt_code = code(Example("OpenCL/sum/warp.cl"));
 
 # ╔═╡ 124251a9-4052-4e4b-a0b4-1476fd19731d
-codesnippet(warp_sum_code)
+codesnippet(simt_code)
 
 # ╔═╡ 0e3a4f79-9d07-46cb-8368-a693304334c1
 frametitle("Unrolled sum")
@@ -635,14 +638,26 @@ end
 # ╔═╡ 8f88521c-4793-4b50-8bbc-8d799336a5ec
 copy_to_local(rand(Float32, copy_to_local_len))
 
+# ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
+Pkg.instantiate()
+
+# ╔═╡ 3ce993a9-8354-47a5-8c63-ff0b0b70caa5
+import Random, CairoMakie # not `using`  as `Slider` collides with PlutoUI
+
+# ╔═╡ 81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
+aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
+
 # ╔═╡ 9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
-function local_sum(x::Vector{T}) where {T}
-	cl.device!(local_device)
+function local_sum(len, code, device)
+	cl.device!(device)
+	T = Float32
+	Random.seed!(0)
+	x = rand(T, len)
     global_x = CLArray(x)
 	local_x = cl.LocalMem(T, length(global_x))
     result = CLArray(zeros(T, 1))
 
-    prg = cl.Program(; source = local_sum_code.code) |> cl.build!
+    prg = cl.Program(; source = code.code) |> cl.build!
     k = cl.Kernel(prg, "sum")
 
     timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
@@ -651,11 +666,23 @@ function local_sum(x::Vector{T}) where {T}
 end
 
 # ╔═╡ a8f39218-e414-4d0e-a577-5d2a01b13c0c
-local_sum(vec)
+local_sum(local_len, local_code, local_device)
+
+# ╔═╡ 1028e0b0-8357-4e92-86fc-7357114aba8e
+local_sum(reordered_local_len, reordered_local_sum_code, reordered_local_device)
+
+# ╔═╡ c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
+local_sum(simt_len, simt_code, simt_device)
+
+# ╔═╡ a553fdca-8a38-47a7-a1c4-fafa4d8e1939
+local_sum(unrolled_len, unrolled_code, unrolled_device)
 
 # ╔═╡ 0855eaeb-c6e4-40f9-80d2-930c960bbd3c
-function block_local_sum(x::Vector{T}, factor) where {T}
+function block_local_sum(len, factor)
 	cl.device!(block_local_device)
+	T = Float32
+	Random.seed!(0)
+	x = rand(T, len)
     global_x = CLArray(x)
 	local_x = cl.LocalMem(T, length(global_x))
     result = CLArray(zeros(T, 1))
@@ -669,70 +696,7 @@ function block_local_sum(x::Vector{T}, factor) where {T}
 end
 
 # ╔═╡ b151cf64-7297-44a1-ad7e-a6c9505ff7df
-block_local_sum(rand(Float32, block_local_len), factor)
-
-# ╔═╡ ebaebae9-aead-41b0-b67a-3b8750324ec1
-function reordered_local_sum(x::Vector{T}) where {T}
-	cl.device!(reordered_local_device)
-    global_x = CLArray(x)
-	local_x = cl.LocalMem(T, length(global_x))
-    result = CLArray(zeros(T, 1))
-
-    prg = cl.Program(; source = reordered_local_sum_code.code) |> cl.build!
-    k = cl.Kernel(prg, "sum")
-
-    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
-
-    return (; OpenCL = Array(result)[], Classical = sum(x))
-end
-
-# ╔═╡ 1028e0b0-8357-4e92-86fc-7357114aba8e
-reordered_local_sum(rand(Float32, reordered_local_len))
-
-# ╔═╡ 9c3851ff-255f-4acf-9d16-e27c92b11e11
-function warp_sum(x::Vector{T}) where {T}
-	cl.device!(warp_device)
-    global_x = CLArray(x)
-	local_x = cl.LocalMem(T, length(global_x))
-    result = CLArray(zeros(T, 1))
-
-    prg = cl.Program(; source = warp_sum_code.code) |> cl.build!
-    k = cl.Kernel(prg, "sum")
-
-    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
-
-    return (; OpenCL = Array(result)[], Classical = sum(x))
-end
-
-# ╔═╡ c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
-warp_sum(rand(Float32, warp_len))
-
-# ╔═╡ bdf76270-edc2-42ec-aaa7-e19987a2d63c
-function unrolled_sum(x::Vector{T}) where {T}
-    cl.device!(unrolled_device)
-    global_x = CLArray(x)
-	local_x = cl.LocalMem(T, length(global_x))
-    result = CLArray(zeros(T, 1))
-
-    prg = cl.Program(; source = unrolled_code.code) |> cl.build!
-    k = cl.Kernel(prg, "sum")
-
-    timed_clcall(k, Tuple{CLPtr{T}, CLPtr{T}, CLPtr{T}}, global_x, local_x, result; global_size=length(global_x))
-
-    return (; OpenCL = Array(result)[], Classical = sum(x))
-end
-
-# ╔═╡ a553fdca-8a38-47a7-a1c4-fafa4d8e1939
-unrolled_sum(rand(Float32, unrolled_len))
-
-# ╔═╡ a4db4017-9ecd-4b03-9127-2c75e5d2c537
-Pkg.instantiate()
-
-# ╔═╡ 3ce993a9-8354-47a5-8c63-ff0b0b70caa5
-import Random, CairoMakie # not `using`  as `Slider` collides with PlutoUI
-
-# ╔═╡ 81e9d99a-c6ce-48ff-9caa-9b1869b36c2a
-aside(CairoMakie.image(CairoMakie.rotr90(mandel_image)), v_offset = -400)
+block_local_sum(block_local_len, factor)
 
 # ╔═╡ aa51b708-525e-467f-a20f-45e860c206cc
 function reduce(n, good; x_scale = 30, y_scale = 160, offset = 0.1, thread_hue = "orange")
@@ -855,11 +819,9 @@ reduce(6, true)
 # ╟─8181ffb4-57db-494f-b749-dd937608800b
 # ╟─b13fdb24-1593-438a-a282-600750a5731c
 # ╟─ed441d0c-7f33-4c61-846c-a60195a77f97
-# ╠═9cb2ba52-3602-4a01-9b47-2db2552ad4c5
-# ╠═162d84a4-1782-4fe0-8829-0b2f0aab1c4a
 # ╠═a8f39218-e414-4d0e-a577-5d2a01b13c0c
-# ╟─9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
 # ╟─9195adff-cc5d-4504-9a31-ba19b18639a0
+# ╟─9fc9e122-a49b-4ead-b0e0-4f7a42a1123d
 # ╟─15418031-5e3d-419a-aa92-8f2b69593c69
 # ╟─5a9e881e-479c-4b5a-af0a-8f543bf981f3
 # ╟─15bd7314-9ce8-4042-aea8-1c6a736d12a7
@@ -892,29 +854,28 @@ reduce(6, true)
 # ╟─aa51b708-525e-467f-a20f-45e860c206cc
 # ╟─8a999999-0312-4d38-bdc4-2e4b569165a4
 # ╟─69bb37db-054e-48b9-9a7a-307ded792b2b
-# ╟─1028e0b0-8357-4e92-86fc-7357114aba8e
-# ╟─ebaebae9-aead-41b0-b67a-3b8750324ec1
-# ╠═d7147373-238f-48c4-9dbd-6be3d6290fab
-# ╠═42f69447-d0f0-44ca-a862-350d3c3dad73
-# ╠═fd21958c-8e56-48dd-9327-f79b51860785
+# ╠═1028e0b0-8357-4e92-86fc-7357114aba8e
+# ╟─d7147373-238f-48c4-9dbd-6be3d6290fab
+# ╟─42f69447-d0f0-44ca-a862-350d3c3dad73
+# ╟─fd21958c-8e56-48dd-9327-f79b51860785
 # ╟─bc42547f-5b8a-4b18-8f04-04fcd67bd61b
 # ╟─dede8676-17d8-4cb4-9673-dcb00df7c9e7
 # ╟─124251a9-4052-4e4b-a0b4-1476fd19731d
 # ╠═c6d5d3b9-c293-4f40-8d2a-11cadf9c50e2
-# ╟─9c3851ff-255f-4acf-9d16-e27c92b11e11
 # ╟─e18d0f97-4339-4388-b9fb-fe58ed701845
 # ╟─335ab0f7-91ac-407d-a5c8-2455ee38bf5a
 # ╟─89075f19-4572-45f7-a387-40045a581483
-# ╠═d97d7a7e-c4f5-4675-a40e-05289a55927c
+# ╟─27e92271-9c5a-42a9-a522-946d1ad5b676
+# ╟─b099820a-3be5-4bc0-a0da-8564558c61dc
+# ╟─d97d7a7e-c4f5-4675-a40e-05289a55927c
 # ╟─0e3a4f79-9d07-46cb-8368-a693304334c1
 # ╟─243570f7-eaa5-4c08-8ac2-004274271e2c
 # ╠═a553fdca-8a38-47a7-a1c4-fafa4d8e1939
 # ╟─2ab1717e-afc2-4b1a-86e6-e64143546a94
-# ╟─bdf76270-edc2-42ec-aaa7-e19987a2d63c
 # ╟─cf439f0a-5e14-45d6-8611-1b84e7574437
 # ╟─79935f80-8c05-4849-8489-ea5c279a6e05
 # ╟─4f83f156-8238-48ce-8e91-2345dcc367cd
-# ╠═c73b5b7b-b017-4692-860f-a98ac7a3cd5e
+# ╟─c73b5b7b-b017-4692-860f-a98ac7a3cd5e
 # ╟─09f6479a-bc27-436c-a3b3-12b84e084a86
 # ╠═e1741ba3-cc15-4c0b-96ac-2b8621be2fa6
 # ╠═e4f9813d-e171-4d04-870a-3802e0ee1728
