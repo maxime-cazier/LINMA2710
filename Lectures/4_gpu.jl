@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    return quote
+    quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -400,7 +400,7 @@ There are 32 threads so they are on the same warp. However, they are not executi
 
 # ╔═╡ 8bc85b9b-a74e-4c6a-a8e1-0cfc57856ab5
 Foldable(
-	md"How much time will it take to execute it if `global_size` is 32 and `n` is 16 ?",
+	md"How much time will it take to execute it if `global_size` is 64 and `n` is 32 ?",
 	md"""
 There are 64 threads so they are on two different warps. All the threads of the first warp satisfy `item < 32` so they all execute `do_task_A`. All the threads of the second one go to the `else` clause so they all execute `do_task_B`. So all the threads in each task execute the same instructions and the two warps can execute in parallel. The total time will then be `max(a, b) ns`.
 """
@@ -452,6 +452,9 @@ codesnippet(reordered_local_sum_code)
 # ╔═╡ dede8676-17d8-4cb4-9673-dcb00df7c9e7
 frametitle("SIMT sum")
 
+# ╔═╡ 1d84c896-5208-4d50-9fdd-b82a2233f834
+Foldable(md"Why don't we check any condition on `item`, aren't some thread computing data that won't be used ?", md"As a SIMT unit is the smallest unit of computation, even if only on thread is executing, it's all SIMT unit will be executing anyway. So it's better to save the evaluation of the `if` condition if all the threads are in the same SIMT unit anyway.")
+
 # ╔═╡ e18d0f97-4339-4388-b9fb-fe58ed701845
 aside((@bind simt_platform Select([p => p.name for p in cl.platforms()])), v_offset = -400)
 
@@ -472,9 +475,6 @@ aside(
 	Foldable(md"Why do we need `volatile` ?", md"`barrier(CLK_LOCAL_MEM_FENCE)` does two synchronizations: It first makes sure that all threads reach the barriers but it also makes sure that their register memory are synced with the local memory. In a SIMT unit, they are always at the same instruction but they may have values in a register that is not synced with the local memory. `volatile` makes sure that the local memory stays in sync."),
 	v_offset = -300,
 )
-
-# ╔═╡ 1d84c896-5208-4d50-9fdd-b82a2233f834
-Foldable(md"Why don't we check any condition on `item`, aren't some thread computing data that won't be used ?", md"As a SIMT unit is the smallest unit of computation, even if only on thread is executing, it's all SIMT unit will be executing anyway. So it's better to save the evaluation of the `if` condition if all the threads are in the same SIMT unit anyway.")
 
 # ╔═╡ d97d7a7e-c4f5-4675-a40e-05289a55927c
 simt_code = code(Example("OpenCL/sum/warp.cl"));
@@ -850,7 +850,7 @@ reduce(6, true)
 # ╟─5a9e881e-479c-4b5a-af0a-8f543bf981f3
 # ╟─4293e21c-ffd1-4bf8-8797-23b0dec5a0c3
 # ╟─15bd7314-9ce8-4042-aea8-1c6a736d12a7
-# ╠═cefe3234-28ef-4591-87ad-a4b3468610d7
+# ╟─cefe3234-28ef-4591-87ad-a4b3468610d7
 # ╟─d2de3aca-47e3-48be-8e37-5dd55338b4ce
 # ╠═b151cf64-7297-44a1-ad7e-a6c9505ff7df
 # ╟─040af2e8-fc93-40e6-a0f1-70c96d864609
