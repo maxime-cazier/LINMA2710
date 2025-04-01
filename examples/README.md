@@ -4,6 +4,13 @@ We detail the use of `tau2` for profiling OpenCL. See also [these slides](https:
 
 ## Installing `tau2`
 
+> [!IMPORTANT]
+> `tau2` is available on the `manneback` cluster in the `releases/2023b`.
+> As this is the default release, you should be able to just do `module load tau2` to use `tau_exec` and `pprof`
+> You still need to install it on your own computer if you want to use the graphical interfaces `paraprof` and `jumpshot`.
+
+### Installing from source
+
 The software is not available on the clusters so you cannot just load them with `module load`, you will need to install it from source.
 The following will install the binaries `tau_exec`, `pprof`, `paraprof` and `jumpshot` that we will need in the next sections.
 First clone it:
