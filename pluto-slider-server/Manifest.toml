@@ -1809,9 +1809,11 @@ version = "0.1.6"
 
 [[deps.PlutoPDF]]
 deps = ["DefaultApplication", "Distributed", "JSON", "NodeJS_20_jll", "Pluto", "RelocatableFolders", "Scratch"]
-git-tree-sha1 = "299125d85762e5463e7eb4305402cb5aa6b71a35"
+git-tree-sha1 = "5e8e2f0f00a8ff35f57f10a63d5beb971dc30923"
+repo-rev = "cache_dir"
+repo-url = "git@github.com:blegat/PlutoPDF.jl.git"
 uuid = "6eb38059-8c05-41f7-8871-5e7e2697ace6"
-version = "1.2.1"
+version = "1.2.2"
 
 [[deps.PlutoSliderServer]]
 deps = ["AbstractPlutoDingetjes", "Base64", "BetterFileWatching", "Configurations", "Distributed", "FromFile", "Git", "Glob", "HTTP", "JSON", "Logging", "Pkg", "Pluto", "PlutoDependencyExplorer", "SHA", "Serialization", "Sockets", "TOML", "TerminalLoggers", "UUIDs"]
