@@ -1811,7 +1811,7 @@ version = "0.1.6"
 deps = ["DefaultApplication", "Distributed", "JSON", "NodeJS_20_jll", "Pluto", "RelocatableFolders", "Scratch"]
 git-tree-sha1 = "5e8e2f0f00a8ff35f57f10a63d5beb971dc30923"
 repo-rev = "cache_dir"
-repo-url = "git@github.com:blegat/PlutoPDF.jl.git"
+repo-url = "https://github.com/blegat/PlutoPDF.jl"
 uuid = "6eb38059-8c05-41f7-8871-5e7e2697ace6"
 version = "1.2.2"
 
