@@ -12,7 +12,7 @@ We detail the use of `tau2` for profiling OpenCL. See also [these slides](https:
 ### Installing from source
 
 > [!WARNING]
-> Make sure to deactivate any conda environment befoe compiling `tau2`.
+> Make sure to [deactivate any conda environment](https://docs.conda.io/projects/conda/en/4.6.1/user-guide/tasks/manage-environments.html#deactivating-an-environment) before compiling `tau2`.
 > Users reported issues of installing `tau2` within a conda environment.
 
 The software is not available on the clusters so you cannot just load them with `module load`, you will need to install it from source.
