@@ -11,6 +11,10 @@ We detail the use of `tau2` for profiling OpenCL. See also [these slides](https:
 
 ### Installing from source
 
+> [!WARNING]
+> Make sure to deactivate any conda environment befoe compiling `tau2`.
+> Users reported issues of installing `tau2` within a conda environment.
+
 The software is not available on the clusters so you cannot just load them with `module load`, you will need to install it from source.
 The following will install the binaries `tau_exec`, `pprof`, `paraprof` and `jumpshot` that we will need in the next sections.
 First clone it:
