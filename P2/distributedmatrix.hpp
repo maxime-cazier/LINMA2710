@@ -1,6 +1,7 @@
 #ifndef DISTRIBUTED_MATRIX_H
 #define DISTRIBUTED_MATRIX_H
 
+#include <algorithm>
 #include "abstractmatrix.hpp"
 #include "matrix.hpp"
 #include <mpi.h>
@@ -27,6 +28,9 @@ public:
     //      This constructor is called in parallel by all processes
     //      Extract the columns that should be handled by this process in localData
     DistributedMatrix(const Matrix& matrix, int numProcesses);
+
+    DistributedMatrix(int globalRows, int globalCols, int localCols, int startCol, const Matrix& localData);
+
     
     // Copy constructor
     DistributedMatrix(const DistributedMatrix& other);
