@@ -4,7 +4,9 @@
 #include <vector>
 #include <functional>
 
-class Matrix
+#include "abstractmatrix.hpp"
+
+class Matrix : public AbstractMatrix
 {
 private:
     int rows, cols;
@@ -28,10 +30,8 @@ public:
 
     // Elementary operations
     Matrix operator+(const Matrix &other) const; // Addition
-    Matrix operator-(const Matrix &other) const; // Subtraction
     Matrix operator*(const Matrix &other) const; // Matrix multiplication
-    Matrix operator*(double scalar) const;       // Scalar multiplication
-
+    
     // Transpose: returns a new Matrix that is the transpose.
     Matrix transpose() const;
 
