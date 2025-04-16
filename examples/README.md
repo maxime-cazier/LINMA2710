@@ -7,7 +7,9 @@ We detail the use of `tau2` for profiling OpenCL. See also [these slides](https:
 > [!IMPORTANT]
 > `tau2` is available on the `manneback` cluster in the `releases/2023b`.
 > As this is the default release, you should be able to just do `module load tau2` to use `tau_exec` and `pprof`
-> You still need to install it on your own computer if you want to use the graphical interfaces `paraprof` and `jumpshot`.
+> In order to use the graphical interfaces `paraprof` and `jumpshot`, you can either
+> 1. Use X11 forwarding on the cluster (either using `ForwardX11 yes` in your `.ssh/config` file or using `ssh -X manneback`), you will also need `module load Java` and then you can run `paraprof` or `jumpshot` on the cluster.
+> 2. You can install `tau2` on your own computer, copy the profiling file to your computer and run `paraprof` or `jumpshot` on your computer.
 
 ### Installing from source
 
