@@ -7,8 +7,14 @@
 
 #include <CL/cl.h>
 
-#include <Tracy.hpp>
-#include <TracyOpenCL.hpp>
+// /!\ Important : this must come before including the tracy `.hpp` and `.cpp`
+#define TRACY_ENABLE
+
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenCL.hpp>
+
+// Hacky way to enable tracy
+#include <TracyClient.cpp>
 
 #define CL_ASSERT(err)                                              \
     if((err) != CL_SUCCESS)                                         \

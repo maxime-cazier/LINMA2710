@@ -1,1 +1,1 @@
-Example from [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd)
+Example from [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd) that was slightly modified so that it works outside the `cmake` infrastructure of `tracy`
