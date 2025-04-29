@@ -1,3 +1,13 @@
+/*
+ * Tracy Profiler (https://github.com/wolfpld/tracy) is licensed under the
+ * 3-clause BSD license.
+ *
+ * Copyright (c) 2017-2025, Bartosz Taudul <wolf@nereid.pl>
+ * All rights reserved.
+ * Slightly modified version of the file `examples/OpenCLVectorAdd/OpenCLVectorAdd.cpp`
+ */
+
+
 #include <iostream>
 #include <cassert>
 #include <string>
