@@ -53,15 +53,47 @@ Now, use the following to allow the server running on your local computer to com
 ```sh
 [local computer]$ sshuttle -r manneback 10.33.204.15/16 # /!\ modify it with "the output of `hostname -i` on the compute node"/16
 ```
-Now, run the
+Now, on the cluster, compile with
 ```sh
+[blegat@mb-sky015 tracy]$ module load Clang
+[blegat@mb-sky015 tracy]$ module load CUDA
+[blegat@mb-sky015 tracy]$ make
+```
+In order to run, if you don't have a NVIDIA GPU, we can use the Intel OpenCL platform for running on the CPU
+with `module load intel-compilers`
+```sh
+[blegat@mb-sky015 tracy]$ module load intel-compilers
 [blegat@mb-sky015 tracy]$ ./OpenCLVectorAdd
-Waiting 10 seconds to give you time to start the Tracy server...
-9 seconds left...
-8 seconds left...
+Waiting 30 seconds to give you time to start the Tracy server...
+28 seconds left...
+28 seconds left...
 ```
 Quick! Launch the Tracy server, enter the ip of the server and then click on "Connect" before the timer expires or you'll miss the profiling information of the start of the program (or the whole of it since this example is quite small).
 You can also directly launch the profiler with the ip address:
 ```sh
 ./build/tracy-profiler -a 10.33.204.15 # /!\ modify it with "the output of `hostname -i` on the compute node"
 ```
+Now, the Tracy server will record the profiling info sent by the client which is then printing
+```sh
+3 seconds left...
+2 seconds left...
+1 seconds left...
+0 seconds left...
+... Done waiting, let's go
+OpenCL Platform: Intel(R) OpenCL
+OpenCL Device: Intel(R) Xeon(R) Silver 4116 CPU @ 2.10GHz
+VectorAdd Kernel Enqueued
+VectorAdd Kernel Enqueued
+...
+VectorAdd Kernel Enqueued
+VectorAdd Kernel Enqueued
+VectorAdd Kernel 0 tooks 560us
+VectorAdd Kernel 1 tooks 503us
+...
+VectorAdd Kernel 98 tooks 471us
+VectorAdd Kernel 99 tooks 453us
+VectorAdd runtime avg: 435.634us, std: 266.001us over 100 runs.
+Results are correct!
+```
+The program has finished, terminating the Tracy client.
+As the Tracy profiler has recorded all information, you can now visualize it and save it on your computer if you want to be able to access it later.

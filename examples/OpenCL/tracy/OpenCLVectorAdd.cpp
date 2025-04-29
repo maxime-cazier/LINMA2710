@@ -32,6 +32,8 @@ const char kernelSource[] =
 "       }                                                                              "
 "   }                                                                                  ";
 
+#define WAIT_TIME 30
+
 int main()
 {
     cl_platform_id platform;
@@ -42,6 +44,15 @@ int main()
     cl_program program;
     cl_int err;
     cl_mem bufferA, bufferB, bufferC;
+
+    std::cout << "Waiting " << WAIT_TIME << " seconds to give you time to start the Tracy server..." << std::endl << std::flush;
+    std::cout.flush();
+    for (int i = 0; i < WAIT_TIME; i++) {
+        sleep(1);
+	std::cout << WAIT_TIME - i - 1 << " seconds left..." << std::endl << std::flush;
+	std::cout.flush();
+    }
+    std::cout << "... Done waiting, let's go" << std::endl;
 
     TracyCLCtx tracyCLCtx;
 
@@ -143,7 +154,6 @@ int main()
             TracyCLZoneSetEvent(writeBufferBEvent);
         }
     }
-
     cl_int clN = static_cast<cl_int>(N);
     const int numFrames = 10;
     const int launchsPerFrame = 10;
