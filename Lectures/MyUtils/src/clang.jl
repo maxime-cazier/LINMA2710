@@ -102,6 +102,7 @@ function compile(
         end
     catch err
         if err isa ProcessFailedException
+            @warn(sprint(showerror, err))
             return
         else
             rethrow(err)
@@ -112,6 +113,9 @@ end
 
 function emit_llvm(code; kws...)
     llvm = compile(code; lib = false, emit_llvm = true, kws...)
+    if isnothing(llvm)
+        return
+    end
     InteractiveUtils.print_llvm(stdout, read(llvm, String))
     return code
 end
