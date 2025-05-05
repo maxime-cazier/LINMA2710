@@ -1,6 +1,61 @@
 # Profiling
 
-We explain in this section how to profile your code with `tau2` or `tracy`.
+We explain in this section how to profile your code with `codecarbon`, `tau2` or `tracy`.
+
+## Profiling with `codecarbon`
+
+The [`codecarbon` tool](https://github.com/mlco2/codecarbon) allows to track the power consumption of a process.
+It is designed to track the consumption of python functions but it can also be used to
+track the energy consumption of arbitrary executables (such as built from C/C++) using [monitor-emissions-c](https://github.com/adrienbanse/monitor-emissions-c):
+Here is short example showing how to do it.
+First connect to the cluster and clone [`monitor-emissions-c`](https://github.com/adrienbanse/monitor-emissions-c):
+```sh
+[local computer]$ ssh manneback
+[blegat@mbackf2 ~]$ git clone https://github.com/adrienbanse/monitor-emissions-c.git
+```
+Now, let's its dependencies, we how here how to do it with [`uv`](https://docs.astral.sh/uv/) so start by installing it if it's not already done:
+```sh
+[blegat@mbackf2 ~]$ curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+We now create a virtual environment and install `codecarbon` as it is in the `requirements.txt` file
+```sh
+[blegat@mbackf2 ~]$ cd monitor-emissions-c
+[blegat@mbackf2 monitor-emissions-c]$ uv venv
+[blegat@mbackf2 monitor-emissions-c]$ uv pip install -r requirements.txt --python .venv
+```
+Now, let's load `CUDA` and then run the `vadd_chain` on the GPU (assuming you cloned [LINMA2710](https://github.com/blegat/LINMA2710) on the parent folder and that you already compiled this example)
+```sh
+[blegat@mbackf2 monitor-emissions-c]$ module load CUDA
+[blegat@mbackf2 monitor-emissions-c]$ srun --partition=gpu --gres=gpu:1 ./.venv/bin/python monitor.py ../LINMA2710/examples/OpenCL/vadd_chain/vadd_chain 
+[codecarbon INFO @ 15:12:17] [setup] RAM Tracking...
+[codecarbon INFO @ 15:12:17] [setup] CPU Tracking...
+[codecarbon WARNING @ 15:12:17] No CPU tracking mode found. Falling back on CPU constant mode. 
+ Linux OS detected: Please ensure RAPL files exist at \sys\class\powercap\intel-rapl to measure CPU
+
+[codecarbon INFO @ 15:12:17] CPU Model on constant consumption mode: Intel(R) Xeon(R) Gold 6346 CPU @ 3.10GHz
+[codecarbon INFO @ 15:12:17] [setup] GPU Tracking...
+[codecarbon INFO @ 15:12:17] Tracking Nvidia GPU via pynvml
+[codecarbon INFO @ 15:12:17] >>> Tracker's metadata:
+[codecarbon INFO @ 15:12:17]   Platform system: Linux-5.4.286-1.el8.elrepo.x86_64-x86_64-with-glibc2.28
+[codecarbon INFO @ 15:12:17]   Python version: 3.12.8
+[codecarbon INFO @ 15:12:17]   CodeCarbon version: 2.8.3
+[codecarbon INFO @ 15:12:17]   Available RAM : 2.000 GB
+[codecarbon INFO @ 15:12:17]   CPU count: 2
+[codecarbon INFO @ 15:12:17]   CPU model: Intel(R) Xeon(R) Gold 6346 CPU @ 3.10GHz
+[codecarbon INFO @ 15:12:17]   GPU count: 1
+[codecarbon INFO @ 15:12:17]   GPU model: 1 x NVIDIA A10 BUT only tracking these GPU ids : [0]
+[codecarbon INFO @ 15:12:20] Saving emissions data to file /auto/home/users/b/l/blegat/monitor-emissions-c/emissions.csv
+Invalid file vadd.cl
+1 platforms found
+ 
+ Device is  NVIDIA A10  GPU from  NVIDIA Corporation  with a max of 72 compute units 
+[codecarbon INFO @ 15:12:21] Energy consumed for RAM : 0.000000 kWh. RAM Power : 0.75 W
+[codecarbon INFO @ 15:12:21] Energy consumed for all CPUs : 0.000009 kWh. Total CPU Power : 102.50000000000001 W
+[codecarbon INFO @ 15:12:21] Energy consumed for all GPUs : 0.000003 kWh. Total GPU Power : 30.75126798615562 W
+[codecarbon INFO @ 15:12:21] 0.000012 kWh of electricity used since the beginning.
+```
+The result is stored in the `emissions.csv`. This file is automatically created if it did not exists. Otherwise, the new measurement is added as a new row.
+Now, copy this file back to your local computer with `scp` or `sshfs`.
 
 ## Profiling with `tau2`
 
@@ -32,6 +87,7 @@ You need to pass a folder to `-lopencl` where [it should find `include/CL/cl.h` 
 In my local Linux computer, I can simply do
 ```sh
 [local computer]$ ./configure -opencl=/usr
+[blegat@mbackf2 ~]$ git clone https://github.com/adrienbanse/monitor-emissions-c.git
 ```
 On the manneback cluster, we will use the OpenCL library that comes with CUDA. To see where it is located, we can see `Lmod`:
 ```sh
