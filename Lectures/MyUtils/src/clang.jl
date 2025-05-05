@@ -1,4 +1,5 @@
 import Clang_jll
+import LLVMOpenMP_jll
 import MultilineStrings
 import InteractiveUtils
 
@@ -59,7 +60,7 @@ function compile(
     emit_llvm = false,
     cflags = ["-O3"],
     mpi::Bool = false,
-    use_system::Bool = mpi || "-fopenmp" in cflags, # `-fopenmp` will not work with pure Clang_jll, it needs openmp installed as well
+    use_system::Bool = mpi,
     verbose = 0,
 )
     path = mktempdir()
@@ -80,6 +81,11 @@ function compile(
     if emit_llvm
         push!(args, "-S")
         push!(args, "-emit-llvm")
+    end
+    if "-fopenmp" in cflags && !use_system
+        dir = LLVMOpenMP_jll.artifact_dir
+        push!(args, "-I$(dir)/include")
+        push!(args, "-L$(dir)/lib")
     end
     push!(args, main_file)
     push!(args, "-o")
