@@ -13,7 +13,7 @@ First connect to the cluster and clone [`monitor-emissions-c`](https://github.co
 [local computer]$ ssh manneback
 [blegat@mbackf2 ~]$ git clone https://github.com/adrienbanse/monitor-emissions-c.git
 ```
-Now, let's its dependencies, we how here how to do it with [`uv`](https://docs.astral.sh/uv/) so start by installing it if it's not already done:
+Now, let's install its dependencies, we show here how to do it with [`uv`](https://docs.astral.sh/uv/) so start by installing it if it's not already done:
 ```sh
 [blegat@mbackf2 ~]$ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
