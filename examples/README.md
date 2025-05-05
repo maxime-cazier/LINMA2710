@@ -161,5 +161,5 @@ run the following in the folder where the `tau.slog2` file is
 
 ## Profiling with Tracy profiler
 
-An example for profiling OpenCL with Tracy is available [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd).
+An example for profiling OpenCL with [Tracy](https://github.com/wolfpld/tracy) is available [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd).
 We also added [a slightly adapted version in here](OpenCL/tracy) where you also have instructions on how to run in on the cluster.
