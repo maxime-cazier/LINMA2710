@@ -49,11 +49,12 @@ jobs:
             - name: Ignore notebook state cache in export
               run: echo 'pluto_state_cache' >> .gitignore
 
-            - name: Install OpenMPI and hwloc
+            - name: Install OpenMP, OpenMPI and hwloc
               shell: bash {0}
               run: |
                 sudo apt-get install -y hwloc # For lstopo
                 sudo apt-get install -y openmpi-bin libopenmpi-dev
+                sudo apt-get install -y libomp-dev
 
             - name: Instantiate
               run: |
