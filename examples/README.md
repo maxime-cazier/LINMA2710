@@ -23,7 +23,7 @@ We now create a virtual environment and install `codecarbon` as it is in the `re
 [blegat@mbackf2 monitor-emissions-c]$ uv venv
 [blegat@mbackf2 monitor-emissions-c]$ uv pip install -r requirements.txt --python .venv
 ```
-Now, let's load `CUDA` and then run the `vadd_chain` on the GPU (assuming you cloned [LINMA2710](https://github.com/blegat/LINMA2710) on the parent folder and that you already compiled this example)
+Now, let's load `CUDA` and then run the [`vadd_chain` example](OpenCL/vadd_chain) on the GPU (assuming you cloned [LINMA2710](https://github.com/blegat/LINMA2710) on the parent folder and that you already compiled this example)
 ```sh
 [blegat@mbackf2 monitor-emissions-c]$ module load CUDA
 [blegat@mbackf2 monitor-emissions-c]$ srun --partition=gpu --gres=gpu:1 ./.venv/bin/python monitor.py ../LINMA2710/examples/OpenCL/vadd_chain/vadd_chain 
@@ -55,7 +55,7 @@ Invalid file vadd.cl
 [codecarbon INFO @ 15:12:21] 0.000012 kWh of electricity used since the beginning.
 ```
 The result is stored in the `emissions.csv`. This file is automatically created if it did not exists. Otherwise, the new measurement is added as a new row.
-Now, copy this file back to your local computer with `scp` or `sshfs`.
+Now, copy this file back to your local computer with `scp` or `sshfs` as detailed [here](..).
 
 ## Profiling with `tau2`
 
