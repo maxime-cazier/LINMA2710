@@ -57,6 +57,11 @@ Invalid file vadd.cl
 The result is stored in the `emissions.csv`. This file is automatically created if it did not exists. Otherwise, the new measurement is added as a new row.
 Now, copy this file back to your local computer with `scp` or `sshfs` as detailed [here](..).
 
+## Profiling with Tracy profiler
+
+An example for profiling OpenCL with [Tracy](https://github.com/wolfpld/tracy) is available [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd).
+We also added [a slightly adapted version in here](OpenCL/tracy) where you also have instructions on how to run in on the cluster.
+
 ## Profiling with `tau2`
 
 We detail the use of `tau2` for profiling OpenCL. See also [these slides](https://indico.ijs.si/event/1183/sessions/171/attachments/1065/1362/EuroCC_Intro_to_parallel_programming_accelerators_pt-2.pdf).
@@ -214,8 +219,3 @@ run the following in the folder where the `tau.slog2` file is
 ```sh
 [blegat@mbackf1 vadd_chain]$ jumpshot tau.slog2
 ```
-
-## Profiling with Tracy profiler
-
-An example for profiling OpenCL with [Tracy](https://github.com/wolfpld/tracy) is available [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd).
-We also added [a slightly adapted version in here](OpenCL/tracy) where you also have instructions on how to run in on the cluster.
