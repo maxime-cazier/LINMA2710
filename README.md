@@ -9,23 +9,23 @@ This repository contains different resources for the LINMA2710 courses given at 
 
 ## Schedule
 
-| Week | Thursday   | Topic        | Lecturer |
-|------|------------|--------------|----------|
-| S1    | 06/02/2025 | C++          | Absil    |
-| S2    | 13/02/2025 | C++          | Absil    |
-| S3    | 20/02/2025 | Parallel     | Legat    |
-| S4    | 27/02/2025 | Parallel     | Legat    |
-| S5    | 06/03/2025 | Distributed  | Legat    |
-| S6    | 13/03/2025 | Distributed  | Legat    |
-| S7    | 20/03/2025 | GPU          | Legat    |
-| S8    | 27/03/2025 | GPU          | Legat    |
-| S9    | 03/04/2025 | PDE          | Absil    |
-| S10   | 10/04/2025 | PDE          | Absil    |
-| S11   | 17/04/2025 | PDE          | Absil    |
-| 🥚    | 24/04/2025 | 🐇           | 🐰       |
-| 🥚    | 01/05/2025 | 🐇           | 🐰       |
-| S12   | 08/05/2025 | Project help |          |
-| S13   | 15/05/2025 | Project help |          |
+| Week  | Thursday   | Topic             | Lecturer |
+|-------|------------|-------------------|----------|
+| S1    | 06/02/2025 | C++               | Absil    |
+| S2    | 13/02/2025 | C++               | Absil    |
+| S3    | 20/02/2025 | Parallel          | Legat    |
+| S4    | 27/02/2025 | Parallel          | Legat    |
+| S5    | 06/03/2025 | Distributed       | Legat    |
+| S6    | 13/03/2025 | Distributed       | Legat    |
+| S7    | 20/03/2025 | GPU               | Legat    |
+| S8    | 27/03/2025 | GPU               | Legat    |
+| S9    | 03/04/2025 | PDE               | Absil    |
+| S10   | 10/04/2025 | PDE               | Absil    |
+| S11   | 17/04/2025 | PDE               | Absil    |
+| 🥚    | 24/04/2025 | 🐇                | 🐰       |
+| 🥚    | 01/05/2025 | 🐇                | 🐰       |
+| S12   | 08/05/2025 | Power Consumption | Legat    |
+| S13   | 15/05/2025 | Project help      | TAs      |
 
 ## CECI cluster
 
