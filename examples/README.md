@@ -26,33 +26,39 @@ We now create a virtual environment and install `codecarbon` as it is in the `re
 Now, let's load `CUDA` and then run the [`vadd_chain` example](OpenCL/vadd_chain) on the GPU (assuming you cloned [LINMA2710](https://github.com/blegat/LINMA2710) on the parent folder and that you already compiled this example)
 ```sh
 [blegat@mbackf2 monitor-emissions-c]$ module load CUDA
-[blegat@mbackf2 monitor-emissions-c]$ srun --partition=gpu --gres=gpu:1 ./.venv/bin/python monitor.py ../LINMA2710/examples/OpenCL/vadd_chain/vadd_chain 
-[codecarbon INFO @ 15:12:17] [setup] RAM Tracking...
-[codecarbon INFO @ 15:12:17] [setup] CPU Tracking...
-[codecarbon WARNING @ 15:12:17] No CPU tracking mode found. Falling back on CPU constant mode. 
- Linux OS detected: Please ensure RAPL files exist at \sys\class\powercap\intel-rapl to measure CPU
+[blegat@mbackf2 monitor-emissions-c]$ srun --partition=gpu --gres=gpu:1 ./.venv/bin/python monitor.py ../LINMA2710/examples/OpenCL/vadd_chain/vadd_chain
+srun: job 57726961 queued and waiting for resources
+srun: job 57726961 has been allocated resources
+[codecarbon WARNING @ 10:39:29] Multiple instances of codecarbon are allowed to run at the same time.
+[codecarbon INFO @ 10:39:29] [setup] RAM Tracking...
+[codecarbon INFO @ 10:39:29] [setup] CPU Tracking...
+[codecarbon INFO @ 10:39:29] Tracking Intel CPU via RAPL interface
+[codecarbon INFO @ 10:39:30] [setup] GPU Tracking...
+[codecarbon INFO @ 10:39:30] Tracking Nvidia GPU via pynvml
+[codecarbon INFO @ 10:39:30] The below tracking methods have been set up:
+                RAM Tracking Method: RAM power estimation model
+                CPU Tracking Method: RAPL
+                GPU Tracking Method: pynvml
 
-[codecarbon INFO @ 15:12:17] CPU Model on constant consumption mode: Intel(R) Xeon(R) Gold 6346 CPU @ 3.10GHz
-[codecarbon INFO @ 15:12:17] [setup] GPU Tracking...
-[codecarbon INFO @ 15:12:17] Tracking Nvidia GPU via pynvml
-[codecarbon INFO @ 15:12:17] >>> Tracker's metadata:
-[codecarbon INFO @ 15:12:17]   Platform system: Linux-5.4.286-1.el8.elrepo.x86_64-x86_64-with-glibc2.28
-[codecarbon INFO @ 15:12:17]   Python version: 3.12.8
-[codecarbon INFO @ 15:12:17]   CodeCarbon version: 2.8.3
-[codecarbon INFO @ 15:12:17]   Available RAM : 2.000 GB
-[codecarbon INFO @ 15:12:17]   CPU count: 2
-[codecarbon INFO @ 15:12:17]   CPU model: Intel(R) Xeon(R) Gold 6346 CPU @ 3.10GHz
-[codecarbon INFO @ 15:12:17]   GPU count: 1
-[codecarbon INFO @ 15:12:17]   GPU model: 1 x NVIDIA A10 BUT only tracking these GPU ids : [0]
-[codecarbon INFO @ 15:12:20] Saving emissions data to file /auto/home/users/b/l/blegat/monitor-emissions-c/emissions.csv
+[codecarbon INFO @ 10:39:30] >>> Tracker's metadata:
+[codecarbon INFO @ 10:39:30]   Platform system: Linux-5.4.286-1.el8.elrepo.x86_64-x86_64-with-glibc2.28
+[codecarbon INFO @ 10:39:30]   Python version: 3.12.8
+[codecarbon INFO @ 10:39:30]   CodeCarbon version: 3.0.1
+[codecarbon INFO @ 10:39:30]   Available RAM : 2.000 GB
+[codecarbon INFO @ 10:39:30]   CPU count: 2 thread(s) in 2 physical CPU(s)
+[codecarbon INFO @ 10:39:30]   CPU model: Intel(R) Xeon(R) Gold 6346 CPU @ 3.10GHz
+[codecarbon INFO @ 10:39:30]   GPU count: 1
+[codecarbon INFO @ 10:39:30]   GPU model: 1 x NVIDIA A10 BUT only tracking these GPU ids : [0]
+[codecarbon INFO @ 10:39:33] Emissions data (if any) will be saved to file /auto/home/users/b/l/blegat/monitor-emissions-c/emissions.csv
 Invalid file vadd.cl
 1 platforms found
- 
- Device is  NVIDIA A10  GPU from  NVIDIA Corporation  with a max of 72 compute units 
-[codecarbon INFO @ 15:12:21] Energy consumed for RAM : 0.000000 kWh. RAM Power : 0.75 W
-[codecarbon INFO @ 15:12:21] Energy consumed for all CPUs : 0.000009 kWh. Total CPU Power : 102.50000000000001 W
-[codecarbon INFO @ 15:12:21] Energy consumed for all GPUs : 0.000003 kWh. Total GPU Power : 30.75126798615562 W
-[codecarbon INFO @ 15:12:21] 0.000012 kWh of electricity used since the beginning.
+
+ Device is  NVIDIA A10  GPU from  NVIDIA Corporation  with a max of 72 compute units
+[codecarbon INFO @ 10:39:33] Energy consumed for RAM : 0.000001 kWh. RAM Power : 10.0 W
+[codecarbon INFO @ 10:39:33] Delta energy consumed for CPU with intel_rapl : 0.000021 kWh, power : 238.74691655808266 W
+[codecarbon INFO @ 10:39:33] Energy consumed for All CPU : 0.000021 kWh
+[codecarbon INFO @ 10:39:33] Energy consumed for all GPUs : 0.000003 kWh. Total GPU Power : 34.75551818161019 W
+[codecarbon INFO @ 10:39:33] 0.000025 kWh of electricity used since the beginning.
 ```
 The result is stored in the `emissions.csv`. This file is automatically created if it did not exists. Otherwise, the new measurement is added as a new row.
 Now, copy this file back to your local computer with `scp` or `sshfs` as detailed [here](..).
