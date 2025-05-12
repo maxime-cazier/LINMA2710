@@ -28,7 +28,7 @@ In OpenCL, the code executed on the device must be compiled during the program e
 
 ## Guidelines
 
- - **Deadline**: The deadline is the Friday 16th May 23h59.
+ - **Deadline**: The deadline is the Tuesday 20th May 23h59.
  - **Fraud**:  As always for this course, you must do all the writing (report, code) <ins>individually</ins>. Never share your production. However, you are allowed, and even encouraged, to exchange ideas on how to address the assignment.
  - **Plagiarism**: As always, you must cite all your sources.
  - **Report Submission**: Using the Moodle assignment activity, submit your report in a file called `Report_Project_3_FirstName_LastName.pdf`. The report should be short (maximum 2 pages for the text; the codes, tables and images are not counted in the 2 pages limit) and should include answers to the questions.
