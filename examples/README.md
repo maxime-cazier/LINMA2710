@@ -1,15 +1,91 @@
-# Profiling with `tau2`
+# Profiling
+
+We explain in this section how to profile your code with `codecarbon`, `tau2` or `tracy`.
+
+## Profiling with `codecarbon`
+
+The [`codecarbon` tool](https://github.com/mlco2/codecarbon) allows to track the power consumption of a process.
+It is designed to track the consumption of python functions but it can also be used to
+track the energy consumption of arbitrary executables (such as built from C/C++) using [monitor-emissions-c](https://github.com/adrienbanse/monitor-emissions-c):
+Here is short example showing how to do it.
+First connect to the cluster and clone [`monitor-emissions-c`](https://github.com/adrienbanse/monitor-emissions-c):
+```sh
+[local computer]$ ssh manneback
+[blegat@mbackf2 ~]$ git clone https://github.com/adrienbanse/monitor-emissions-c.git
+```
+Now, let's install its dependencies, we show here how to do it with [`uv`](https://docs.astral.sh/uv/) so start by installing it if it's not already done:
+```sh
+[blegat@mbackf2 ~]$ curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+We now create a virtual environment and install `codecarbon` as it is in the `requirements.txt` file
+```sh
+[blegat@mbackf2 ~]$ cd monitor-emissions-c
+[blegat@mbackf2 monitor-emissions-c]$ uv venv
+[blegat@mbackf2 monitor-emissions-c]$ uv pip install -r requirements.txt --python .venv
+```
+Now, let's load `CUDA` and then run the [`vadd_chain` example](OpenCL/vadd_chain) on the GPU (assuming you cloned [LINMA2710](https://github.com/blegat/LINMA2710) on the parent folder and that you already compiled this example)
+```sh
+[blegat@mbackf2 monitor-emissions-c]$ module load CUDA
+[blegat@mbackf2 monitor-emissions-c]$ srun --partition=gpu --gres=gpu:1 ./.venv/bin/python monitor.py ../LINMA2710/examples/OpenCL/vadd_chain/vadd_chain
+srun: job 57726961 queued and waiting for resources
+srun: job 57726961 has been allocated resources
+[codecarbon WARNING @ 10:39:29] Multiple instances of codecarbon are allowed to run at the same time.
+[codecarbon INFO @ 10:39:29] [setup] RAM Tracking...
+[codecarbon INFO @ 10:39:29] [setup] CPU Tracking...
+[codecarbon INFO @ 10:39:29] Tracking Intel CPU via RAPL interface
+[codecarbon INFO @ 10:39:30] [setup] GPU Tracking...
+[codecarbon INFO @ 10:39:30] Tracking Nvidia GPU via pynvml
+[codecarbon INFO @ 10:39:30] The below tracking methods have been set up:
+                RAM Tracking Method: RAM power estimation model
+                CPU Tracking Method: RAPL
+                GPU Tracking Method: pynvml
+
+[codecarbon INFO @ 10:39:30] >>> Tracker's metadata:
+[codecarbon INFO @ 10:39:30]   Platform system: Linux-5.4.286-1.el8.elrepo.x86_64-x86_64-with-glibc2.28
+[codecarbon INFO @ 10:39:30]   Python version: 3.12.8
+[codecarbon INFO @ 10:39:30]   CodeCarbon version: 3.0.1
+[codecarbon INFO @ 10:39:30]   Available RAM : 2.000 GB
+[codecarbon INFO @ 10:39:30]   CPU count: 2 thread(s) in 2 physical CPU(s)
+[codecarbon INFO @ 10:39:30]   CPU model: Intel(R) Xeon(R) Gold 6346 CPU @ 3.10GHz
+[codecarbon INFO @ 10:39:30]   GPU count: 1
+[codecarbon INFO @ 10:39:30]   GPU model: 1 x NVIDIA A10 BUT only tracking these GPU ids : [0]
+[codecarbon INFO @ 10:39:33] Emissions data (if any) will be saved to file /auto/home/users/b/l/blegat/monitor-emissions-c/emissions.csv
+Invalid file vadd.cl
+1 platforms found
+
+ Device is  NVIDIA A10  GPU from  NVIDIA Corporation  with a max of 72 compute units
+[codecarbon INFO @ 10:39:33] Energy consumed for RAM : 0.000001 kWh. RAM Power : 10.0 W
+[codecarbon INFO @ 10:39:33] Delta energy consumed for CPU with intel_rapl : 0.000021 kWh, power : 238.74691655808266 W
+[codecarbon INFO @ 10:39:33] Energy consumed for All CPU : 0.000021 kWh
+[codecarbon INFO @ 10:39:33] Energy consumed for all GPUs : 0.000003 kWh. Total GPU Power : 34.75551818161019 W
+[codecarbon INFO @ 10:39:33] 0.000025 kWh of electricity used since the beginning.
+```
+The result is stored in the `emissions.csv`. This file is automatically created if it did not exists. Otherwise, the new measurement is added as a new row.
+Now, copy this file back to your local computer with `scp` or `sshfs` as detailed [here](..).
+
+## Profiling with Tracy profiler
+
+An example for profiling OpenCL with [Tracy](https://github.com/wolfpld/tracy) is available [here](https://github.com/wolfpld/tracy/tree/master/examples/OpenCLVectorAdd).
+We also added [a slightly adapted version in here](OpenCL/tracy) where you also have instructions on how to run in on the cluster.
+
+## Profiling with `tau2`
 
 We detail the use of `tau2` for profiling OpenCL. See also [these slides](https://indico.ijs.si/event/1183/sessions/171/attachments/1065/1362/EuroCC_Intro_to_parallel_programming_accelerators_pt-2.pdf).
 
-## Installing `tau2`
+### Installing `tau2`
 
 > [!IMPORTANT]
 > `tau2` is available on the `manneback` cluster in the `releases/2023b`.
 > As this is the default release, you should be able to just do `module load tau2` to use `tau_exec` and `pprof`
-> You still need to install it on your own computer if you want to use the graphical interfaces `paraprof` and `jumpshot`.
+> In order to use the graphical interfaces `paraprof` and `jumpshot`, you can either
+> 1. Use X11 forwarding on the cluster (either using `ForwardX11 yes` in your `.ssh/config` file or using `ssh -X manneback`), you will also need `module load Java` and then you can run `paraprof` or `jumpshot` on the cluster.
+> 2. You can install `tau2` on your own computer, copy the profiling file to your computer and run `paraprof` or `jumpshot` on your computer.
 
-### Installing from source
+#### Installing from source
+
+> [!WARNING]
+> Make sure to [deactivate any conda environment](https://docs.conda.io/projects/conda/en/4.6.1/user-guide/tasks/manage-environments.html#deactivating-an-environment) before compiling `tau2`.
+> Users reported issues of installing `tau2` within a conda environment.
 
 The software is not available on the clusters so you cannot just load them with `module load`, you will need to install it from source.
 The following will install the binaries `tau_exec`, `pprof`, `paraprof` and `jumpshot` that we will need in the next sections.
@@ -22,6 +98,7 @@ You need to pass a folder to `-lopencl` where [it should find `include/CL/cl.h` 
 In my local Linux computer, I can simply do
 ```sh
 [local computer]$ ./configure -opencl=/usr
+[blegat@mbackf2 ~]$ git clone https://github.com/adrienbanse/monitor-emissions-c.git
 ```
 On the manneback cluster, we will use the OpenCL library that comes with CUDA. To see where it is located, we can see `Lmod`:
 ```sh
@@ -75,7 +152,7 @@ This `PATH` environment is only updated for this shell session. In order to appl
 [blegat@mbackf1 tau2]$ echo "export PATH=$(pwd)/x86_64/bin:\$PATH" >> ~/.bashrc
 ```
 
-## Profiling OpenCL with `tau2`
+### Profiling OpenCL with `tau2`
 
 Given a binary `a.out` that is using OpenCL, it can be profiled as follows.
 Consider for instance `vadd_chain`
@@ -123,7 +200,7 @@ run the following in the folder where the `profile...` files are
 [blegat@mbackf1 vadd_chain]$ paraprof
 ```
 
-## Tracing OpenCL with `tau2`
+### Tracing OpenCL with `tau2`
 
 By setting the `TAU_TRACE` environment variable to `1`, `tau_exec` will collect traces instead of profiles as in the previous section.
 ```sh

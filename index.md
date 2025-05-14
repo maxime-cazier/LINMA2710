@@ -5,3 +5,4 @@ The html versions accessible here are static, see [here](Lectures) for details o
 * Shared-Memory Multiprocessing [html](Lectures/2_shared.html) [pdf](Lectures/2_shared.pdf)
 * Distributed Computing with MPI [html](Lectures/3_mpi.html) [pdf](Lectures/3_mpi.pdf)
 * Graphics processing units [html](Lectures/4_gpu.html) [pdf](Lectures/4_gpu.pdf)
+* Power Consumption [html](Lectures/5_power.html) [pdf](Lectures/5_power.pdf)

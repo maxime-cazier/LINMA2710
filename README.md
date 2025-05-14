@@ -9,23 +9,23 @@ This repository contains different resources for the LINMA2710 courses given at 
 
 ## Schedule
 
-| Week | Thursday   | Topic        | Lecturer |
-|------|------------|--------------|----------|
-| S1    | 06/02/2025 | C++          | Absil    |
-| S2    | 13/02/2025 | C++          | Absil    |
-| S3    | 20/02/2025 | Parallel     | Legat    |
-| S4    | 27/02/2025 | Parallel     | Legat    |
-| S5    | 06/03/2025 | Distributed  | Legat    |
-| S6    | 13/03/2025 | Distributed  | Legat    |
-| S7    | 20/03/2025 | GPU          | Legat    |
-| S8    | 27/03/2025 | GPU          | Legat    |
-| S9    | 03/04/2025 | PDE          | Absil    |
-| S10   | 10/04/2025 | PDE          | Absil    |
-| S11   | 17/04/2025 | PDE          | Absil    |
-| 🥚    | 24/04/2025 | 🐇           | 🐰       |
-| 🥚    | 01/05/2025 | 🐇           | 🐰       |
-| S12   | 08/05/2025 | Project help |          |
-| S13   | 15/05/2025 | Project help |          |
+| Week  | Thursday   | Topic             | Lecturer |
+|-------|------------|-------------------|----------|
+| S1    | 06/02/2025 | C++               | Absil    |
+| S2    | 13/02/2025 | C++               | Absil    |
+| S3    | 20/02/2025 | Parallel          | Legat    |
+| S4    | 27/02/2025 | Parallel          | Legat    |
+| S5    | 06/03/2025 | Distributed       | Legat    |
+| S6    | 13/03/2025 | Distributed       | Legat    |
+| S7    | 20/03/2025 | GPU               | Legat    |
+| S8    | 27/03/2025 | GPU               | Legat    |
+| S9    | 03/04/2025 | PDE               | Absil    |
+| S10   | 10/04/2025 | PDE               | Absil    |
+| S11   | 17/04/2025 | PDE               | Absil    |
+| 🥚    | 24/04/2025 | 🐇                | 🐰       |
+| 🥚    | 01/05/2025 | 🐇                | 🐰       |
+| S12   | 08/05/2025 | Power Consumption | Legat    |
+| S13   | 15/05/2025 | Project help      | TAs      |
 
 ## CECI cluster
 
@@ -39,16 +39,36 @@ You should now be able to connect to the manneback cluster with
 (your computer) $ ssh manneback
 ```
 
+> [!TIP]
+> For choosing the clusters, check [this list](https://www.ceci-hpc.be/clusters.html) and [this one with manneback](https://www.cism.ucl.ac.be/doc/_contents/Computing/index.html#available-hardware) to see which one has the hardware you need.
+> The [Lyra](https://www.ceci-hpc.be/clusters.html#lyra) cluster was recently added with GPU support so it could also be used for P3 if manneback is overloaded.
+
 In addition to the information below and the CECI documentation [here is a little FAQ](https://docs.google.com/document/d/1CgwDDCUR7tAVCu2MmsscXV-KDEK3UhtOHoCFaztm0-s/edit?usp=sharing).
 
 ### Syncing your files
+
+We mention here 4 ways to sync your files:
+1. Copy file by file with `scp`
+2. Using `git`
+3. Mount a whole folder with `sshfs`
+4. Use an extension of your IDE
+
+#### 1. `scp`
 
 Follow [this guide](https://support.ceci-hpc.be/doc/_contents/ManagingFiles/TransferringFilesEffectively.html) to copy files from your computer to the cluster. For instance, with `scp` you can copy a file `submit.sh` from your computer with:
 ```sh
 (your computer) $ scp submit.sh manneback:.
 ```
+
+#### 2. `git`
+
 It might however be a bit tedious to keep the files in sync with `scp`. I recommend pushing your project in a **private** (don't use a public git as your code shouldn't be accessible to other students!) git (for instance in https://forge.uclouvain.be/) and pull it from the CECI cluster. You can then easily update the code on the CECI cluster with `git pull`.
-**Important** do not sync the binaries of with the CECI cluster as you might have a different architecture. Exclude them from the git by adding them in the `.gitignore` file and simply recompile them on the cluster.
+
+> [!WARNING]
+> Do not sync the binaries of with the CECI cluster as you might have a different architecture. Exclude them from the git by [adding them in the `.gitignore` file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository) and simply recompile them on the cluster.
+
+#### 3. `sshfs`
+
 You can also modify the files in a folder locally using `sshfs`.
 For instance, I have a `LINMA2710` folder in my home directory on the `manneback` cluster.
 To access these files locally on a new folder `manneback`, I can do
@@ -57,6 +77,20 @@ To access these files locally on a new folder `manneback`, I can do
 (local computer)$ sshfs manneback:/home/ucl/inma/blegat/LINMA2710 ./manneback-sshfs
 ```
 You can then open the `manneback-sshfs` with your favorite IDE on your local computers and you will be modifying files directly on the cluster!
+If you open a terminal in your IDE, it will still be running on the CPU and GPU of your local computer even though it will see the files on the cluster.
+Therefore, in order to compile and run your program on the cluster, you still need to `ssh` to the cluster in that terminal.
+
+#### 4. IDE extension
+
+A popular approach to remote development over ssh is using the [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) of [VSCode](https://code.visualstudio.com/) as detailed [here](https://code.visualstudio.com/docs/remote/ssh).
+This will open a VSCode window where you will see the files on the folder of the cluster like with the `sshfs` approach but the terminal you open in
+VSCode will also be running on the cluster.
+
+> [!WARNING]
+> In the community open-source releases of VSCode such as [VSCodium](https://vscodium.com/), [Open VSX](https://open-vsx.org/) is used instead of the [VS Marketplace](https://marketplace.visualstudio.com/vscode).
+> As the Remote - SSH extension is available in the marketplace but not in Open VSX, you can [Open Remote - SSH](https://open-vsx.org/extension/jeanp413/open-remote-ssh) instead.
+> Note that the [well-known workaround](https://github.com/VSCodium/vscodium/issues/418#issuecomment-643664182) to use the VS Marketplace in VSCodium
+> violates the [terms of use of the marketplace](https://aka.ms/vsmarketplace-ToU) which only allows it to be used with the binaries provided by Microsoft.
 
 ### Submit a job
 
